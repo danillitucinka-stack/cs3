@@ -24,16 +24,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# Include directories (if include folder exists)
-if(EXISTS "${CMAKE_SOURCE_DIR}/include")
-    include_directories(include)
-endif()
-
-# Universal source file search in root directory
-file(GLOB SOURCES "*.cpp" "*.c")
-
-# Executable
-add_executable(cs3_ai ${SOURCES})
+# Executable (only main.cpp)
+add_executable(cs3_ai main.cpp)
 
 # Link libraries
 target_link_libraries(cs3_ai raylib nlohmann_json::nlohmann_json)
