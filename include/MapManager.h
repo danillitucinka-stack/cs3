@@ -3,13 +3,15 @@
 
 #include "raylib.h"
 #include <vector>
-#include <string>
 
 class MapManager {
+private:
+    std::vector<Model> walls;
+    std::vector<Model> boxes;
+
 public:
-    static std::vector<std::vector<int>> LoadMap(const std::string& filename);
-    static std::vector<Model> GenerateWalls(const std::vector<std::vector<int>>& map, Texture2D texture);
-    static void DrawWalls(const std::vector<Model>& walls, const std::vector<std::vector<int>>& map);
+    void GenerateMap();
+    void Draw();
 };
 
 #endif

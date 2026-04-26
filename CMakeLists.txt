@@ -3,6 +3,9 @@ project(CS3_AI)
 
 set(CMAKE_CXX_STANDARD 17)
 
+include_directories(src)
+include_directories(include)
+
 include(FetchContent)
 
 # Fetch raylib 5.0
@@ -26,8 +29,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# Auto-find sources
-file(GLOB SOURCES "src/*.cpp")
+# Auto-find sources recursively
+file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 # Executable
 add_executable(cs3_ai ${SOURCES})
