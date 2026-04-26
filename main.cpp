@@ -120,7 +120,7 @@ public:
         float crouchOffset = crouching ? -0.5f : 0.0f;
         Vector3 pos = {1.0f + sinf(sway) * 0.1f - recoil, -0.5f + cosf(sway) * 0.1f + tilt + bobbing * 0.1f + crouchOffset, 1.0f};
         if (type == AK47) {
-            if (weaponModel.meshCount > 0) {
+            if (IsModelReady(weaponModel)) {
                 DrawModel(weaponModel, pos, 1.0f, WHITE);
             } else {
                 DrawCube(pos, 1.0f, 1.0f, 1.0f, RED);
@@ -132,11 +132,11 @@ public:
             DrawCube({pos.x - 0.4f, pos.y, pos.z}, 0.3f, 0.1f, 0.5f, BROWN);
             DrawCube({pos.x - 0.2f, pos.y - 0.05f, pos.z}, 0.05f, 0.1f, 0.1f, GRAY);
         } else {
-            DrawCylinder({pos.x + 0.2f, pos.y, pos.z}, 0.01f, 0.02f, 0.3f, 16, SILVER);
+            DrawCylinder({pos.x + 0.2f, pos.y, pos.z}, 0.01f, 0.02f, 0.3f, 16, LIGHTGRAY);
             DrawCube({pos.x - 0.1f, pos.y, pos.z}, 0.15f, 0.05f, 0.2f, DARKBROWN);
         }
         if (fireRate > 0 && fireRate < 0.05f) {
-            DrawSphere({pos.x + 0.8f, pos.y, pos.z}, 0.1f, GOLD);
+            DrawSphere({pos.x + 0.8f, pos.y, pos.z}, 0.1f, YELLOW);
         }
     }
     void Shoot(Player& player) {
@@ -174,7 +174,7 @@ public:
     void Draw() {
         DrawCube({0.0f, -0.5f, 0.0f}, 100.0f, 1.0f, 100.0f, BEIGE);
         for (const auto& pos : wallPositions) {
-            DrawCube(pos, 1.0f, 4.0f, 1.0f, GOLD);
+            DrawCube(pos, 1.0f, 4.0f, 1.0f, YELLOW);
         }
         for (const auto& pos : boxPositions) {
             DrawCube(pos, 1.0f, 1.0f, 1.0f, DARKGRAY);
@@ -215,7 +215,7 @@ public:
     }
     static void DrawHUD(int health, int ammo, int money) {
         DrawText(TextFormat("Health: %d", health), 10, 10, 20, ORANGE);
-        DrawText(TextFormat("Ammo: %d", ammo), 10, 35, 20, GOLD);
+        DrawText(TextFormat("Ammo: %d", ammo), 10, 35, 20, YELLOW);
         DrawText(TextFormat("Money: $%d", money), 10, 60, 20, GREEN);
     }
     static void DrawCrosshair(int w, int h) {

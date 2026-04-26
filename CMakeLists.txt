@@ -32,14 +32,8 @@ add_executable(cs3_ai main.cpp)
 # Link libraries
 target_link_libraries(cs3_ai raylib nlohmann_json::nlohmann_json)
 
-# Copy entire resources folder to build directory if it exists
-if(EXISTS ${CMAKE_SOURCE_DIR}/resources)
-    add_custom_command(TARGET cs3_ai POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/resources $<TARGET_FILE_DIR:cs3_ai>/resources
-        COMMENT "Copying resources to build directory"
-    )
-endif()
+# Copy resources to build directory
+file(COPY resources DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Release)
 
 # Copy raylib.dll if needed
 if(WIN32)
