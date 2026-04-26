@@ -7,6 +7,8 @@
 #include <cmath>
 #include <filesystem>
 
+enum WeaponType { AK47, AWP, DEAGLE };
+
 enum GameState { MENU, MAP_SELECT, PLAYING, BUYING, CONNECTING };
 
 class Player {
@@ -88,11 +90,16 @@ public:
     float sway, recoil, fireRate, zoomFOV;
     bool isZoomed;
     Sound shootSound;
+    Model weaponModel;
     Weapon(WeaponType t = AK47) : type(t), sway(0), recoil(0), fireRate(0), zoomFOV(60.0f), isZoomed(false) {
         if (t == AWP) zoomFOV = 20.0f;
         std::string soundPath = "resources/sounds/shot.wav";
         if (FileExists(soundPath.c_str())) {
             shootSound = LoadSound(soundPath.c_str());
+        }
+        std::string modelPath = "resources/models/v_ak47.obj";
+        if (FileExists(modelPath.c_str())) {
+            weaponModel = LoadModel(modelPath.c_str());
         }
     }
     void Update(bool moving, Player& player) {
@@ -113,11 +120,11 @@ public:
         float crouchOffset = crouching ? -0.5f : 0.0f;
         Vector3 pos = {1.0f + sinf(sway) * 0.1f - recoil, -0.5f + cosf(sway) * 0.1f + tilt + bobbing * 0.1f + crouchOffset, 1.0f};
         if (type == AK47) {
-            DrawCylinder({pos.x + 0.5f, pos.y, pos.z}, 0.05f, 0.05f, 0.8f, 16, GRAY);
-            DrawCube({pos.x, pos.y, pos.z}, 0.4f, 0.15f, 0.6f, DARKGRAY);
-            DrawCube({pos.x - 0.3f, pos.y, pos.z}, 0.2f, 0.1f, 0.4f, BROWN);
-            DrawCube({pos.x - 0.1f, pos.y - 0.1f, pos.z}, 0.1f, 0.2f, 0.1f, BROWN);
-            DrawCube({pos.x, pos.y - 0.05f, pos.z + 0.2f}, 0.08f, 0.4f, 0.05f, DARKGRAY);
+            if (weaponModel.meshCount > 0) {
+                DrawModel(weaponModel, pos, 1.0f, WHITE);
+            } else {
+                DrawCube(pos, 1.0f, 1.0f, 1.0f, RED);
+            }
         } else if (type == AWP) {
             DrawCylinder({pos.x + 0.7f, pos.y, pos.z}, 0.04f, 0.04f, 1.2f, 16, DARKGREEN);
             DrawCube({pos.x, pos.y, pos.z}, 0.5f, 0.15f, 0.7f, DARKGREEN);
@@ -313,6 +320,7 @@ int main() {
         EndDrawing();
     }
 
+    UnloadModel(weapon.weaponModel);
     CloseAudioDevice();
     CloseWindow();
     return 0;
