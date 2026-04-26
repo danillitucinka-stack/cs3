@@ -15,6 +15,7 @@ FetchContent_MakeAvailable(raylib)
 # Set raylib build options for speed
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
+set(SUPPORT_AUDIO ON CACHE BOOL "" FORCE)
 
 # MSVC runtime
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:DLL>")
@@ -26,8 +27,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# Executable (only main.cpp)
-add_executable(cs3_ai main.cpp)
+# Collect all source files
+file(GLOB SOURCES "src/*.cpp")
+file(GLOB HEADERS "include/*.h")
+
+# Executable
+add_executable(cs3_ai main.cpp ${SOURCES})
 
 # Link libraries
 target_link_libraries(cs3_ai raylib nlohmann_json::nlohmann_json)

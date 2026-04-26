@@ -1,0 +1,8 @@
+{
+    "name": "AK-47",
+    "damage": 36,
+    "fire_rate": 0.1,
+    "recoil": 0.1,
+    "price": 2700,
+    "ammo": 30
+}

@@ -1,0 +1,8 @@
+{
+    "name": "Dust2 A-Site",
+    "enemies": 5,
+    "walls": [
+        {"x": 0, "z": 0},
+        {"x": 2, "z": 0}
+    ]
+}
