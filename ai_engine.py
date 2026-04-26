@@ -2,6 +2,7 @@ import json
 import random
 import time
 import threading
+import os
 
 # Function to generate random bot behavior
 def generate_bot_behavior():
@@ -58,6 +59,16 @@ def generate_content():
         generate_skin(f"texture_{i}", prompt)
     print("Generated 50 textures.")
 
+# Function to check and generate new weapon model
+def check_and_generate_weapon():
+    # Check if new weapon is needed (e.g., if a flag file exists)
+    if os.path.exists("new_weapon_flag.txt"):
+        os.remove("new_weapon_flag.txt")  # Remove flag
+        weapon_id = random.randint(51, 100)  # New IDs
+        prompt = f"Weapon texture, high-tech gun, variant {weapon_id}"
+        generate_skin(f"weapon_{weapon_id}", prompt)
+        print(f"Generated new weapon: weapon_{weapon_id}.png")
+
 # Main function to run in background
 if __name__ == "__main__":
     # Generate map once at start
@@ -76,6 +87,7 @@ if __name__ == "__main__":
     thread.daemon = True
     thread.start()
 
-    # Keep running
+    # Keep running and check every 10 seconds
     while True:
-        time.sleep(1)
+        time.sleep(10)
+        check_and_generate_weapon()
