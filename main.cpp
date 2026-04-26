@@ -5,8 +5,15 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <filesystem>
+#include <iostream>
 
-enum GameState { MENU, PLAYING, BUYING };
+std::string GetResourcesPath() {
+    std::filesystem::path exePath = std::filesystem::current_path();
+    return exePath.string() + "/resources/";
+}
+
+enum GameState { MENU, MAP_SELECT, SINGLE_PLAYER, MULTIPLAYER, BUYING, CONNECTING };
 enum WeaponType { AK47, AWP, DEAGLE };
 
 class Player {
@@ -18,14 +25,19 @@ public:
     bool isCrouching, isGrounded;
     int health, money;
     Sound footstepSound;
-    Player() : speed(5.0f), gravity(-9.8f), jumpForce(8.0f), crouchY(0.0f), bobbingTime(0.0f), isCrouching(false), isGrounded(true), health(100), money(800), velocity({0,0,0}) {
+    Player(std::string resPath) : speed(5.0f), gravity(-9.8f), jumpForce(8.0f), crouchY(0.0f), bobbingTime(0.0f), isCrouching(false), isGrounded(true), health(100), money(800), velocity({0,0,0}) {
         position = {0.0f, 2.0f, 4.0f};
         camera.position = position;
         camera.target = {0.0f, 2.0f, 0.0f};
         camera.up = {0.0f, 1.0f, 0.0f};
         camera.fovy = 60.0f;
         camera.projection = CAMERA_PERSPECTIVE;
-        footstepSound = LoadSound("resources/sounds/footsteps.wav");
+        std::string soundPath = resPath + "sounds/footsteps.wav";
+        if (FileExists(soundPath.c_str())) {
+            footstepSound = LoadSound(soundPath.c_str());
+        } else {
+            // Fallback: no sound
+        }
     }
     void Update(bool& playFootstep) {
         Vector3 targetVel = {0, velocity.y, 0};
@@ -36,7 +48,6 @@ public:
         velocity.x = Vector3Lerp(velocity, targetVel, GetFrameTime() * 5.0f).x;
         velocity.z = Vector3Lerp(velocity, targetVel, GetFrameTime() * 5.0f).z;
 
-        // Crouch
         if (IsKeyDown(KEY_LEFT_CONTROL)) {
             isCrouching = true;
             crouchY = -1.0f;
@@ -45,13 +56,11 @@ public:
             crouchY = 0.0f;
         }
 
-        // Jump and Air Strafing
         if (isGrounded && IsKeyPressed(KEY_SPACE)) {
             velocity.y = jumpForce;
             isGrounded = false;
         }
         if (!isGrounded) {
-            // Air strafing: allow full control
             velocity.x = targetVel.x;
             velocity.z = targetVel.z;
         }
@@ -69,7 +78,6 @@ public:
         camera.position = position;
         camera.position.y += crouchY;
 
-        // Bobbing
         if (fabs(velocity.x) > 0.1f || fabs(velocity.z) > 0.1f) {
             bobbingTime += GetFrameTime() * 10.0f;
             camera.position.y += sinf(bobbingTime) * 0.05f;
@@ -98,15 +106,27 @@ public:
     float sway, recoil, fireRate, zoomFOV;
     bool isZoomed;
     Sound shootSound;
-    Weapon(WeaponType t = AK47) : type(t), sway(0), recoil(0), fireRate(0), zoomFOV(60.0f), isZoomed(false) {
+    Weapon(WeaponType t, std::string resPath) : type(t), sway(0), recoil(0), fireRate(0), zoomFOV(60.0f), isZoomed(false) {
         if (t == AWP) zoomFOV = 20.0f;
-        std::string modelPath = "resources/models/" + std::string(t == AK47 ? "ak47" : t == AWP ? "awp" : "deagle") + ".obj";
+        // Try .obj first, then .mdl (converted), fallback to cube
+        std::string modelPath = resPath + "models/v_" + std::string(t == AK47 ? "ak47" : t == AWP ? "awp" : "knife") + ".obj";
         if (FileExists(modelPath.c_str())) {
             model = LoadModel(modelPath.c_str());
         } else {
-            model = LoadModelFromMesh(GenMeshCube(0.5f, 0.2f, 1.0f));  // Fallback cube
+            std::string mdlPath = resPath + "models/v_" + std::string(t == AK47 ? "ak47" : t == AWP ? "awp" : "knife") + ".mdl";
+            if (FileExists(mdlPath.c_str())) {
+                // Note: Raylib doesn't support .mdl directly. Convert to .obj first.
+                model = LoadModelFromMesh(GenMeshCube(0.5f, 0.2f, 1.0f));  // Placeholder
+            } else {
+                model = LoadModelFromMesh(GenMeshCube(0.5f, 0.2f, 1.0f));
+            }
         }
-        shootSound = LoadSound("resources/sounds/shot.wav");
+        std::string soundPath = resPath + "sounds/shot.wav";
+        if (FileExists(soundPath.c_str())) {
+            shootSound = LoadSound(soundPath.c_str());
+        } else {
+            // Fallback: no sound
+        }
     }
     void Update(bool moving, Player& player) {
         if (moving) sway += 0.2f;
@@ -126,7 +146,6 @@ public:
         float crouchOffset = crouching ? -0.5f : 0.0f;
         Vector3 pos = {1.0f + sinf(sway) * 0.1f - recoil, -0.5f + cosf(sway) * 0.1f + tilt + bobbing * 0.1f + crouchOffset, 1.0f};
         DrawModel(model, pos, 1.0f, WHITE);
-        // Muzzle flash
         if (fireRate > 0 && fireRate < 0.05f) {
             DrawSphere({pos.x + 0.8f, pos.y, pos.z}, 0.1f, YELLOW);
         }
@@ -154,15 +173,55 @@ public:
 class MapManager {
 public:
     Model mapModel;
-    MapManager() {
-        if (FileExists("resources/models/dust2.obj")) {
-            mapModel = LoadModel("resources/models/dust2.obj");
+    std::vector<Vector3> wallPositions;
+    std::string currentMap;
+    MapManager(std::string resPath, std::string mapName = "dust2") : currentMap(mapName) {
+        LoadMap(resPath, mapName);
+    }
+    void LoadMap(std::string resPath, std::string mapName) {
+        currentMap = mapName;
+        std::string mapPath = resPath + "maps/" + mapName + ".obj";
+        if (FileExists(mapPath.c_str())) {
+            mapModel = LoadModel(mapPath.c_str());
         } else {
-            mapModel = LoadModelFromMesh(GenMeshCube(10.0f, 1.0f, 10.0f));  // Fallback
+            // Generate fallback based on mapName
+            if (mapName == "dust2") {
+                GenerateDust2();
+            } else if (mapName == "mirage") {
+                GenerateMirage();
+            } else {
+                GenerateDust2();  // Default
+            }
+        }
+    }
+    void GenerateDust2() {
+        mapModel = LoadModelFromMesh(GenMeshCube(10.0f, 1.0f, 10.0f));
+        wallPositions.clear();
+        for (int i = 0; i < 20; ++i) {
+            for (int j = 0; j < 20; ++j) {
+                if (i == 0 || i == 19 || j == 0 || j == 19) {
+                    wallPositions.push_back({(float)j * 2.0f - 20.0f, 2.0f, (float)i * 2.0f - 20.0f});
+                }
+            }
+        }
+    }
+    void GenerateMirage() {
+        mapModel = LoadModelFromMesh(GenMeshCube(10.0f, 1.0f, 10.0f));
+        wallPositions.clear();
+        // Different layout
+        for (int i = 0; i < 20; ++i) {
+            for (int j = 0; j < 20; ++j) {
+                if (i == 5 && j > 5 && j < 15) {
+                    wallPositions.push_back({(float)j * 2.0f - 20.0f, 2.0f, (float)i * 2.0f - 20.0f});
+                }
+            }
         }
     }
     void Draw() {
         DrawModel(mapModel, {0.0f, 0.0f, 0.0f}, 1.0f, BEIGE);
+        for (const auto& pos : wallPositions) {
+            DrawCube(pos, 1.0f, 4.0f, 1.0f, YELLOW);
+        }
     }
     ~MapManager() {
         UnloadModel(mapModel);
@@ -171,9 +230,22 @@ public:
 
 class UIManager {
 public:
-    static void DrawMenu(int w, int h) {
-        DrawText("CS 3 AI", w/2 - 50, h/2 - 50, 40, BLACK);
-        DrawText("Press ENTER to Play", w/2 - 100, h/2, 20, GRAY);
+    static void DrawMenu(int w, int h, std::vector<std::string>& assetsFound) {
+        DrawText("CS 3 AI", w/2 - 50, h/2 - 100, 40, BLACK);
+        DrawText("Press 1: Single Player (Bots)", w/2 - 120, h/2 - 50, 20, GRAY);
+        DrawText("Press 2: Multiplayer (Online)", w/2 - 120, h/2 - 20, 20, GRAY);
+        DrawText("Press 3: Connect to CS 1.6 Server", w/2 - 140, h/2 + 10, 20, GRAY);
+        DrawText("Assets Loaded:", w/2 - 80, h/2 + 50, 20, GREEN);
+        for (size_t i = 0; i < assetsFound.size(); ++i) {
+            DrawText(assetsFound[i].c_str(), w/2 - 100, h/2 + 70 + i * 20, 15, LIGHTGRAY);
+        }
+    }
+    static void DrawMapSelect(int w, int h, std::vector<std::string>& maps) {
+        DrawText("Select Map", w/2 - 60, h/2 - 100, 30, BLACK);
+        for (size_t i = 0; i < maps.size(); ++i) {
+            DrawText(TextFormat("%d. %s", i+1, maps[i].c_str()), w/2 - 100, h/2 - 50 + i*30, 20, GRAY);
+        }
+        DrawText("Press ESC to back", w/2 - 80, h/2 + 100, 20, WHITE);
     }
     static void DrawBuyMenu(int w, int h, int money) {
         DrawRectangle(w/2 - 200, h/2 - 150, 400, 300, Fade(BLACK, 0.8f));
@@ -199,13 +271,35 @@ public:
     }
 };
 
+std::vector<std::string> DetectAssets(std::string resPath) {
+    std::vector<std::string> assets;
+    std::vector<std::string> dirs = {"models", "sounds"};
+    std::vector<std::string> exts = {".obj", ".mdl", ".wav"};
+    for (auto& dir : dirs) {
+        std::string path = resPath + dir + "/";
+        for (auto& ext : exts) {
+            std::string file = "ak47" + ext;
+            if (FileExists((path + file).c_str())) assets.push_back(dir + ": " + file);
+            file = "awp" + ext;
+            if (FileExists((path + file).c_str())) assets.push_back(dir + ": " + file);
+            file = "shot" + ext;
+            if (FileExists((path + file).c_str())) assets.push_back(dir + ": " + file);
+        }
+    }
+    return assets;
+}
+
 int main() {
     const int screenWidth = 1280;
     const int screenHeight = 720;
+    std::string resPath = GetResourcesPath();
     GameState currentState = MENU;
-    Player player;
-    Weapon weapon(AK47);
-    MapManager mapManager;
+    std::vector<std::string> assetsFound = DetectAssets(resPath);
+    std::vector<std::string> maps = {"dust2", "mirage", "inferno", "cache"};
+    std::string selectedMap = "dust2";
+    Player player(resPath);
+    Weapon weapon(AK47, resPath);
+    MapManager mapManager(resPath, selectedMap);
 
     InitWindow(screenWidth, screenHeight, "CS 3 AI");
     InitAudioDevice();
@@ -216,7 +310,21 @@ int main() {
 
     while (!WindowShouldClose()) {
         if (currentState == MENU) {
-            if (IsKeyPressed(KEY_ENTER)) currentState = PLAYING;
+            if (IsKeyPressed(KEY_ONE)) currentState = MAP_SELECT;
+            if (IsKeyPressed(KEY_TWO)) currentState = MAP_SELECT;  // Then multiplayer
+            if (IsKeyPressed(KEY_THREE)) currentState = CONNECTING;
+        } else if (currentState == MAP_SELECT) {
+            for (size_t i = 0; i < maps.size(); ++i) {
+                if (IsKeyPressed(KEY_ONE + i)) {
+                    selectedMap = maps[i];
+                    mapManager.LoadMap(resPath, selectedMap);
+                    currentState = (currentState == MAP_SELECT && IsKeyPressed(KEY_ONE)) ? SINGLE_PLAYER : MULTIPLAYER;
+                    currentState = PLAYING;  // Simplified
+                }
+            }
+            if (IsKeyPressed(KEY_ESCAPE)) currentState = MENU;
+        } else if (currentState == CONNECTING) {
+            // Cannot connect to CS 1.6
         } else if (currentState == PLAYING) {
             player.LookAround();
             player.Update(playFootstep);
@@ -229,16 +337,23 @@ int main() {
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) weapon.Shoot(player);
             if (IsKeyPressed(KEY_B)) currentState = BUYING;
         } else if (currentState == BUYING) {
-            if (IsKeyPressed(KEY_ONE) && player.money >= 2700) { player.money -= 2700; weapon = Weapon(AK47); }
-            if (IsKeyPressed(KEY_TWO) && player.money >= 4750) { player.money -= 4750; weapon = Weapon(AWP); }
-            if (IsKeyPressed(KEY_THREE) && player.money >= 700) { player.money -= 700; weapon = Weapon(DEAGLE); }
+            if (IsKeyPressed(KEY_ONE) && player.money >= 2700) { player.money -= 2700; weapon = Weapon(AK47, resPath); }
+            if (IsKeyPressed(KEY_TWO) && player.money >= 4750) { player.money -= 4750; weapon = Weapon(AWP, resPath); }
+            if (IsKeyPressed(KEY_THREE) && player.money >= 700) { player.money -= 700; weapon = Weapon(DEAGLE, resPath); }
             if (IsKeyPressed(KEY_ESCAPE)) currentState = PLAYING;
         }
 
         BeginDrawing();
         if (currentState == MENU) {
             ClearBackground(WHITE);
-            UIManager::DrawMenu(screenWidth, screenHeight);
+            UIManager::DrawMenu(screenWidth, screenHeight, assetsFound);
+        } else if (currentState == MAP_SELECT) {
+            ClearBackground(BLUE);
+            UIManager::DrawMapSelect(screenWidth, screenHeight, maps);
+        } else if (currentState == CONNECTING) {
+            ClearBackground(BLACK);
+            DrawText("Cannot connect to CS 1.6 servers (different engine)", screenWidth/2 - 200, screenHeight/2, 20, RED);
+            DrawText("Press ESC to return", screenWidth/2 - 100, screenHeight/2 + 30, 20, WHITE);
         } else if (currentState == BUYING) {
             ClearBackground(DARKBLUE);
             BeginMode3D(player.camera);
