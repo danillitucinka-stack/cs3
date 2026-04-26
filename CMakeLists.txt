@@ -26,8 +26,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# Executable (only main.cpp)
-add_executable(cs3_ai main.cpp)
+# Auto-find sources
+file(GLOB SOURCES "src/*.cpp")
+
+# Executable
+add_executable(cs3_ai ${SOURCES})
 
 # Link libraries
 target_link_libraries(cs3_ai raylib nlohmann_json::nlohmann_json)
