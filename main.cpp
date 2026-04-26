@@ -97,7 +97,7 @@ public:
         if (FileExists(soundPath.c_str())) {
             shootSound = LoadSound(soundPath.c_str());
         }
-        std::string modelPath = "resources/models/v_ak47.obj";
+        std::string modelPath = "resources/models/ak47.obj";
         if (FileExists(modelPath.c_str())) {
             weaponModel = LoadModel(modelPath.c_str());
         }
@@ -132,11 +132,11 @@ public:
             DrawCube({pos.x - 0.4f, pos.y, pos.z}, 0.3f, 0.1f, 0.5f, BROWN);
             DrawCube({pos.x - 0.2f, pos.y - 0.05f, pos.z}, 0.05f, 0.1f, 0.1f, GRAY);
         } else {
-            DrawCylinder({pos.x + 0.2f, pos.y, pos.z}, 0.01f, 0.02f, 0.3f, 16, LIGHTGRAY);
+            DrawCylinder({pos.x + 0.2f, pos.y, pos.z}, 0.01f, 0.02f, 0.3f, 16, SILVER);
             DrawCube({pos.x - 0.1f, pos.y, pos.z}, 0.15f, 0.05f, 0.2f, DARKBROWN);
         }
         if (fireRate > 0 && fireRate < 0.05f) {
-            DrawSphere({pos.x + 0.8f, pos.y, pos.z}, 0.1f, YELLOW);
+            DrawSphere({pos.x + 0.8f, pos.y, pos.z}, 0.1f, GOLD);
         }
     }
     void Shoot(Player& player) {
@@ -174,7 +174,7 @@ public:
     void Draw() {
         DrawCube({0.0f, -0.5f, 0.0f}, 100.0f, 1.0f, 100.0f, BEIGE);
         for (const auto& pos : wallPositions) {
-            DrawCube(pos, 1.0f, 4.0f, 1.0f, YELLOW);
+            DrawCube(pos, 1.0f, 4.0f, 1.0f, GOLD);
         }
         for (const auto& pos : boxPositions) {
             DrawCube(pos, 1.0f, 1.0f, 1.0f, DARKGRAY);
@@ -215,7 +215,7 @@ public:
     }
     static void DrawHUD(int health, int ammo, int money) {
         DrawText(TextFormat("Health: %d", health), 10, 10, 20, ORANGE);
-        DrawText(TextFormat("Ammo: %d", ammo), 10, 35, 20, YELLOW);
+        DrawText(TextFormat("Ammo: %d", ammo), 10, 35, 20, GOLD);
         DrawText(TextFormat("Money: $%d", money), 10, 60, 20, GREEN);
     }
     static void DrawCrosshair(int w, int h) {

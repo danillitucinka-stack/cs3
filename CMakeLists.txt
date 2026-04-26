@@ -46,3 +46,5 @@ if(WIN32)
         $<TARGET_FILE:raylib> $<TARGET_FILE_DIR:cs3_ai>
     )
 endif()
+
+install(DIRECTORY resources DESTINATION .)
