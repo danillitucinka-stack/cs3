@@ -18,9 +18,12 @@ private:
     Model enemy;
     Vector3 enemyPosition;
     int flashFrames;  // For shooting flash
+    float weaponSway;  // For weapon sway
+    float weaponRecoil;  // For recoil
+    int recoilFrames;
 
 public:
-    GameLoop() : currentState(MENU), playerSpeed(5.0f), mouseSensitivity(0.003f), flashFrames(0) {
+    GameLoop() : currentState(MENU), playerSpeed(5.0f), mouseSensitivity(0.003f), flashFrames(0), weaponSway(0.0f), weaponRecoil(0.0f), recoilFrames(0) {
         playerPosition = {0.0f, 2.0f, 4.0f};
         camera.position = playerPosition;
         camera.target = {0.0f, 2.0f, 0.0f};
@@ -43,15 +46,37 @@ public:
             Vector2 mouseDelta = GetMouseDelta();
             camera.target.x += mouseDelta.x * mouseSensitivity;
             camera.target.y += mouseDelta.y * mouseSensitivity;
-            if (IsKeyDown(KEY_W)) playerPosition.z -= playerSpeed * GetFrameTime();
-            if (IsKeyDown(KEY_S)) playerPosition.z += playerSpeed * GetFrameTime();
-            if (IsKeyDown(KEY_A)) playerPosition.x -= playerSpeed * GetFrameTime();
-            if (IsKeyDown(KEY_D)) playerPosition.x += playerSpeed * GetFrameTime();
+            bool moving = false;
+            if (IsKeyDown(KEY_W)) { playerPosition.z -= playerSpeed * GetFrameTime(); moving = true; }
+            if (IsKeyDown(KEY_S)) { playerPosition.z += playerSpeed * GetFrameTime(); moving = true; }
+            if (IsKeyDown(KEY_A)) { playerPosition.x -= playerSpeed * GetFrameTime(); moving = true; }
+            if (IsKeyDown(KEY_D)) { playerPosition.x += playerSpeed * GetFrameTime(); moving = true; }
+
+            // Weapon sway
+            if (moving) {
+                weaponSway += 0.1f;
+            } else {
+                weaponSway *= 0.9f;
+            }
+
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 TraceLog(LOG_INFO, "Shot fired");
-                flashFrames = 30;  // Flash for 30 frames
+                flashFrames = 10;  // Flash for 10 frames
+                weaponRecoil = 20.0f;  // Recoil amount
+                recoilFrames = 10;
             }
             if (flashFrames > 0) flashFrames--;
+            if (recoilFrames > 0) {
+                recoilFrames--;
+                weaponRecoil *= 0.8f;
+            } else {
+                weaponRecoil = 0.0f;
+            }
+
+            // Enemy faces player
+            Vector3 direction = Vector3Subtract(playerPosition, enemyPosition);
+            float angle = atan2f(direction.x, direction.z);
+            // For simplicity, we'll skip rotation for now, as DrawModel doesn't rotate easily
             // Read bot_status.json
             std::ifstream file("bot_status.json");
             if (file.is_open()) {
@@ -84,15 +109,19 @@ public:
         } else if (currentState == BATTLE) {
             ClearBackground(DARKBLUE);  // Sky background
             BeginMode3D(camera);
-            DrawModel(ground, {0.0f, 0.0f, 0.0f}, 1.0f, GRAY);
+            DrawModel(ground, {0.0f, 0.0f, 0.0f}, 1.0f, DARKGREEN);  // Dark green floor
+            // Draw grid on floor
+            for (int i = -50; i <= 50; i += 10) {
+                DrawLine3D({(float)i, 0.01f, -50.0f}, {(float)i, 0.01f, 50.0f}, GRAY);
+                DrawLine3D({-50.0f, 0.01f, (float)i}, {50.0f, 0.01f, (float)i}, GRAY);
+            }
             DrawModel(enemy, enemyPosition, 1.0f, RED);
             // Simple face on enemy
             DrawCube({enemyPosition.x, enemyPosition.y + 0.5f, enemyPosition.z + 0.3f}, 0.1f, 0.1f, 0.1f, BLACK);  // Eyes
             DrawCube({enemyPosition.x, enemyPosition.y + 0.3f, enemyPosition.z + 0.3f}, 0.05f, 0.05f, 0.05f, BLACK);  // Mouth
             if (flashFrames > 0) {
-                // Shooting flash: yellow sphere at look direction
-                Vector3 flashPos = Vector3Add(camera.position, Vector3Scale(Vector3Normalize(Vector3Subtract(camera.target, camera.position)), 5.0f));
-                DrawSphere(flashPos, 0.2f, YELLOW);
+                // Shooting flash: yellow point near weapon
+                DrawSphere({camera.position.x + 1.0f, camera.position.y - 0.5f, camera.position.z + 1.0f}, 0.1f, YELLOW);
             }
             EndMode3D();
             // Crosshair
@@ -100,6 +129,10 @@ public:
             int centerY = screenHeight / 2;
             DrawLine(centerX - 10, centerY, centerX + 10, centerY, WHITE);
             DrawLine(centerX, centerY - 10, centerX, centerY + 10, WHITE);
+            // Weapon: simple rectangle with sway and recoil
+            float weaponX = screenWidth - 100 + sinf(weaponSway) * 5.0f - weaponRecoil;
+            float weaponY = screenHeight - 100 + cosf(weaponSway) * 5.0f;
+            DrawRectangle(weaponX, weaponY, 80, 40, BROWN);  // Simple gun shape
             DrawText("WASD to move, Mouse to look, Left click to shoot", 10, 10, 20, WHITE);
             DrawFPS(10, 30);
         } else if (currentState == PAUSE) {
