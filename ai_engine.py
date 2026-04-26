@@ -30,29 +30,45 @@ def generate_map():
     print("Map generated and saved to map.json")
 
 # Stub for generate_skin API function (future: download images via neural network)
-def generate_skin(skin_type):
-    # Prompt for neural network
-    prompt = "Military crate texture, industrial look, seamless"
+def generate_skin(skin_type, prompt):
     # Placeholder: In the future, this will use a neural network to generate or download skin images
     # For now, create a dummy file
     # Example: Call API to generate image and save to file
     # image = neural_network.generate_image(prompt)
-    # image.save(f"{skin_type}.png")
-    # return f"{skin_type}.png"
+    # image.save(f"assets/textures/{skin_type}.png")
+    # return f"assets/textures/{skin_type}.png"
     print(f"Generating {skin_type} with prompt: {prompt}... (placeholder)")
-    # Create a dummy file
-    with open(f"{skin_type}.png", "w") as file:
+    # Create a dummy file in assets/textures
+    os.makedirs("assets/textures", exist_ok=True)
+    with open(f"assets/textures/{skin_type}.png", "w") as file:
         file.write("Dummy image data")  # In real, save actual PNG
-    return f"{skin_type}.png"
+    return f"assets/textures/{skin_type}.png"
+
+# Generate 50+ textures
+def generate_content():
+    prompts = [
+        "Military crate texture, industrial look, seamless",
+        "Weapon skin, tactical rifle, camo pattern",
+        "Wall texture, concrete, urban",
+        "Gun barrel, metallic, scratched",
+        # Add more prompts to reach 50
+    ] * 13  # Repeat to make 52, trim to 50
+    for i in range(1, 51):
+        prompt = prompts[i % len(prompts)] + f" variant {i}"
+        generate_skin(f"texture_{i}", prompt)
+    print("Generated 50 textures.")
 
 # Main function to run in background
 if __name__ == "__main__":
     # Generate map once at start
     generate_map()
 
-    # Generate skins
-    wall_skin = generate_skin("wall_texture")
-    bot_skin = generate_skin("bot_texture")
+    # Generate 50 textures
+    generate_content()
+
+    # Generate specific skins
+    wall_skin = generate_skin("wall_texture", "Military crate texture, industrial look, seamless")
+    bot_skin = generate_skin("bot_texture", "Bot skin, robotic, futuristic")
     print(f"Wall skin: {wall_skin}, Bot skin: {bot_skin}")
 
     # Start background thread to update bot status
