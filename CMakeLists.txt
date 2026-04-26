@@ -24,16 +24,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# Include directories
-include_directories(include)
+# Include directories (if include folder exists)
+if(EXISTS "${CMAKE_SOURCE_DIR}/include")
+    include_directories(include)
+endif()
 
-# Source files
-set(SOURCES
-    src/main.cpp
-    src/MapManager.cpp
-    src/UIManager.cpp
-    src/GameLoop.cpp
-)
+# Universal source file search in root directory
+file(GLOB SOURCES "*.cpp" "*.c")
 
 # Executable
 add_executable(cs3_ai ${SOURCES})
