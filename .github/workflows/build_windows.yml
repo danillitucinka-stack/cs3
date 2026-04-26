@@ -9,7 +9,8 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Install MSVC
       uses: microsoft/setup-msbuild@v1
@@ -27,18 +28,13 @@ jobs:
         .\vcpkg install raylib nlohmann-json
 
     - name: Configure CMake
-      run: |
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+      run: cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Build
-      run: |
-        cd build
-        cmake --build . --config Release
+      run: cmake --build build --config Release
 
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: cs3_ai.exe
+        name: cs3_ai
         path: build/Release/cs3_ai.exe
