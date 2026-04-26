@@ -14,10 +14,10 @@ public:
     Vector3 position;
     Vector3 velocity;
     Camera camera;
-    float speed, gravity, jumpForce, groundY;
-    float bobbingTime;
+    float speed, gravity, jumpForce, crouchY, bobbingTime;
+    bool isCrouching;
     int health, money;
-    Player() : speed(5.0f), gravity(-9.8f), jumpForce(8.0f), groundY(0.0f), bobbingTime(0.0f), health(100), money(800), velocity({0,0,0}) {
+    Player() : speed(5.0f), gravity(-9.8f), jumpForce(8.0f), crouchY(0.0f), bobbingTime(0.0f), isCrouching(false), health(100), money(800), velocity({0,0,0}) {
         position = {0.0f, 2.0f, 4.0f};
         camera.position = position;
         camera.target = {0.0f, 2.0f, 0.0f};
@@ -26,25 +26,33 @@ public:
         camera.projection = CAMERA_PERSPECTIVE;
     }
     void Update(const std::vector<Vector3>& walls) {
-        // Movement with inertia
         Vector3 targetVel = {0, velocity.y, 0};
-        float currentSpeed = speed;
-        if (IsKeyDown(KEY_LEFT_SHIFT)) currentSpeed *= 2.0f;  // Run
-        if (IsKeyDown(KEY_W)) targetVel.z -= currentSpeed;
-        if (IsKeyDown(KEY_S)) targetVel.z += currentSpeed;
-        if (IsKeyDown(KEY_A)) targetVel.x -= currentSpeed;
-        if (IsKeyDown(KEY_D)) targetVel.x += currentSpeed;
-        velocity.x = Vector2Lerp({velocity.x, 0}, {targetVel.x, 0}, GetFrameTime() * 5.0f).x;
-        velocity.z = Vector2Lerp({velocity.z, 0}, {targetVel.z, 0}, GetFrameTime() * 5.0f).x;
+        if (IsKeyDown(KEY_W)) targetVel.z -= speed;
+        if (IsKeyDown(KEY_S)) targetVel.z += speed;
+        if (IsKeyDown(KEY_A)) targetVel.x -= speed;
+        if (IsKeyDown(KEY_D)) targetVel.x += speed;
+        velocity.x = Vector3Lerp(velocity, targetVel, GetFrameTime() * 5.0f).x;
+        velocity.z = Vector3Lerp(velocity, targetVel, GetFrameTime() * 5.0f).z;
+
+        // Crouch
+        if (IsKeyDown(KEY_LEFT_CONTROL)) {
+            isCrouching = true;
+            crouchY = -1.0f;
+            speed = 2.5f;
+        } else {
+            isCrouching = false;
+            crouchY = 0.0f;
+            speed = 5.0f;
+        }
 
         // Jump
-        if (IsKeyPressed(KEY_SPACE) && position.y <= groundY + 0.1f) {
+        if (IsKeyPressed(KEY_SPACE) && position.y <= 0.1f) {
             velocity.y = jumpForce;
         }
         velocity.y += gravity * GetFrameTime();
         position.y += velocity.y * GetFrameTime();
-        if (position.y < groundY) {
-            position.y = groundY;
+        if (position.y < 0.0f) {
+            position.y = 0.0f;
             velocity.y = 0;
         }
 
@@ -66,11 +74,12 @@ public:
         }
 
         camera.position = position;
+        camera.position.y += crouchY;
 
         // Bobbing
         if (fabs(velocity.x) > 0.1f || fabs(velocity.z) > 0.1f) {
             bobbingTime += GetFrameTime() * 10.0f;
-            camera.position.y += sinf(bobbingTime) * 0.1f;
+            camera.position.y += sinf(bobbingTime) * 0.05f;
         } else {
             bobbingTime = 0.0f;
         }
@@ -81,7 +90,7 @@ public:
         camera.target.y += mouseDelta.y * 0.005f;
     }
     void TakeRecoil(float amount) {
-        camera.target.y -= amount;  // Up recoil
+        camera.target.y -= amount;
     }
 };
 
@@ -106,23 +115,24 @@ public:
             player.camera.fovy = 60.0f;
         }
     }
-    void Draw(float bobbing) {
+    void Draw(float bobbing, bool crouching) {
         float tilt = -0.1f;
-        Vector3 pos = {1.0f + sinf(sway) * 0.1f - recoil, -0.5f + cosf(sway) * 0.1f + tilt + bobbing * 0.1f, 1.0f};
+        float crouchOffset = crouching ? -0.5f : 0.0f;
+        Vector3 pos = {1.0f + sinf(sway) * 0.1f - recoil, -0.5f + cosf(sway) * 0.1f + tilt + bobbing * 0.1f + crouchOffset, 1.0f};
         if (type == AK47) {
-            DrawCylinder({pos.x + 0.5f, pos.y, pos.z}, 0.05f, 0.05f, 0.8f, 16, GRAY);  // Barrel
+            DrawCylinder({pos.x + 0.5f, pos.y, pos.z}, 0.05f, 0.05f, 0.8f, 16, BLACK);  // Barrel
             DrawCube({pos.x, pos.y, pos.z}, 0.4f, 0.15f, 0.6f, DARKGRAY);  // Receiver
-            DrawCapsule({pos.x - 0.3f, pos.y, pos.z}, {pos.x - 0.1f, pos.y, pos.z}, 0.1f, 16, 16, BROWN);  // Stock
+            DrawCube({pos.x - 0.3f, pos.y, pos.z}, 0.2f, 0.1f, 0.4f, BROWN);  // Stock
             DrawCube({pos.x - 0.1f, pos.y - 0.1f, pos.z}, 0.1f, 0.2f, 0.1f, BROWN);  // Handle
             DrawCube({pos.x, pos.y - 0.05f, pos.z + 0.2f}, 0.08f, 0.4f, 0.05f, DARKGRAY);  // Mag
         } else if (type == AWP) {
-            DrawCylinder({pos.x + 0.7f, pos.y, pos.z}, 0.04f, 0.04f, 1.2f, 16, GREEN);  // Barrel
+            DrawCylinder({pos.x + 0.7f, pos.y, pos.z}, 0.04f, 0.04f, 1.2f, 16, DARKGREEN);  // Barrel
             DrawCube({pos.x, pos.y, pos.z}, 0.5f, 0.15f, 0.7f, DARKGREEN);  // Receiver
             DrawCylinder({pos.x + 0.2f, pos.y + 0.1f, pos.z}, 0.02f, 0.02f, 0.2f, 16, BLACK);  // Scope
             DrawCube({pos.x - 0.4f, pos.y, pos.z}, 0.3f, 0.1f, 0.5f, BROWN);  // Stock
             DrawCube({pos.x - 0.2f, pos.y - 0.05f, pos.z}, 0.05f, 0.1f, 0.1f, GRAY);  // Bipod
         } else {
-            DrawCapsule({pos.x + 0.2f, pos.y, pos.z}, {pos.x + 0.3f, pos.y, pos.z}, 0.01f, 16, 16, SILVER);  // Blade
+            DrawCylinder({pos.x + 0.2f, pos.y, pos.z}, 0.01f, 0.02f, 0.3f, 16, LIGHTGRAY);  // Blade
             DrawCube({pos.x - 0.1f, pos.y, pos.z}, 0.15f, 0.05f, 0.2f, DARKBROWN);  // Handle
         }
         // Muzzle flash
@@ -149,37 +159,32 @@ class MapManager {
 public:
     std::vector<Vector3> wallPositions;
     std::vector<Vector3> boxPositions;
-    std::vector<Vector3> rampPositions;
     void GenerateDust2() {
-        // A-Site: walls, boxes, ramp
+        // A-Site with walls, boxes, sand ground
         for (int i = 0; i < 20; ++i) {
             for (int j = 0; j < 20; ++j) {
-                if ((i == 0 || i == 19 || j == 0 || j == 19) && !(i == 10 && j > 5 && j < 15)) {  // Walls with opening
+                if (i == 0 || i == 19 || j == 0 || j == 19) {  // Outer walls
                     wallPositions.push_back({(float)j * 2.0f - 20.0f, 2.0f, (float)i * 2.0f - 20.0f});
                 }
-                if ((i == 5 && j > 5 && j < 15) || (i == 10 && j > 2 && j < 8)) {  // Boxes
+                if ((i == 5 && j > 5 && j < 15) || (i == 10 && j > 2 && j < 8) || (i == 15 && j > 10 && j < 18)) {  // Boxes
                     boxPositions.push_back({(float)j * 2.0f - 20.0f, 0.5f, (float)i * 2.0f - 20.0f});
-                }
-                if (i > 12 && i < 18 && j > 10 && j < 16) {  // Ramp area
-                    rampPositions.push_back({(float)j * 2.0f - 20.0f, (float)(i - 12) * 0.5f, (float)i * 2.0f - 20.0f});
                 }
             }
         }
     }
     void Draw() {
-        // Ground
+        // Sand ground
         DrawCube({0.0f, -0.5f, 0.0f}, 100.0f, 1.0f, 100.0f, BEIGE);
         // Walls
         for (const auto& pos : wallPositions) {
             DrawCube(pos, 1.0f, 4.0f, 1.0f, YELLOW);
         }
-        // Boxes
+        // Boxes with shades of brown
+        int shade = 0;
         for (const auto& pos : boxPositions) {
-            DrawCube(pos, 1.0f, 1.0f, 1.0f, DARKGRAY);
-        }
-        // Ramp
-        for (const auto& pos : rampPositions) {
-            DrawCube(pos, 1.0f, 0.5f, 1.0f, GRAY);
+            Color brownShade = (shade % 3 == 0) ? BROWN : (shade % 3 == 1) ? DARKBROWN : MAROON;
+            DrawCube(pos, 1.0f, 1.0f, 1.0f, brownShade);
+            shade++;
         }
     }
 };
@@ -194,16 +199,13 @@ public:
         DrawRectangle(w/2 - 200, h/2 - 150, 400, 300, Fade(BLACK, 0.8f));
         DrawText("Buy Menu", w/2 - 50, h/2 - 120, 30, WHITE);
         DrawText(TextFormat("Money: $%d", money), w/2 - 50, h/2 - 90, 20, GREEN);
-        // Buttons
         DrawRectangle(w/2 - 150, h/2 - 50, 300, 40, GRAY);
         DrawText("1. AK-47 $2700", w/2 - 140, h/2 - 40, 20, BLACK);
         DrawRectangle(w/2 - 150, h/2, 300, 40, GRAY);
         DrawText("2. AWP $4750", w/2 - 140, h/2 + 10, 20, BLACK);
         DrawRectangle(w/2 - 150, h/2 + 50, 300, 40, GRAY);
         DrawText("3. Deagle $700", w/2 - 140, h/2 + 60, 20, BLACK);
-        DrawRectangle(w/2 - 150, h/2 + 100, 300, 40, GRAY);
-        DrawText("4. Knife $0", w/2 - 140, h/2 + 110, 20, BLACK);
-        DrawText("Press ESC to exit", w/2 - 100, h/2 + 150, 20, WHITE);
+        DrawText("Press ESC to exit", w/2 - 100, h/2 + 120, 20, WHITE);
     }
     static void DrawHUD(int health, int ammo, int money) {
         DrawText(TextFormat("Health: %d Ammo: %d Money: $%d", health, ammo, money), 10, 10, 20, WHITE);
@@ -242,7 +244,6 @@ int main() {
             if (IsKeyPressed(KEY_ONE) && player.money >= 2700) { player.money -= 2700; weapon = Weapon(AK47); }
             if (IsKeyPressed(KEY_TWO) && player.money >= 4750) { player.money -= 4750; weapon = Weapon(AWP); }
             if (IsKeyPressed(KEY_THREE) && player.money >= 700) { player.money -= 700; weapon = Weapon(DEAGLE); }
-            if (IsKeyPressed(KEY_FOUR)) { weapon = Weapon(AK47); }  // Knife placeholder
             if (IsKeyPressed(KEY_ESCAPE)) currentState = PLAYING;
         }
 
@@ -261,7 +262,7 @@ int main() {
             BeginMode3D(player.camera);
             mapManager.Draw();
             EndMode3D();
-            weapon.Draw(sinf(player.bobbingTime));
+            weapon.Draw(sinf(player.bobbingTime), player.isCrouching);
             UIManager::DrawHUD(player.health, 30, player.money);
             UIManager::DrawCrosshair(screenWidth, screenHeight);
         }
