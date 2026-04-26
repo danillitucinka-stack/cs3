@@ -6,15 +6,8 @@
 #include <vector>
 #include <cmath>
 #include <filesystem>
-#include <iostream>
 
-std::string GetResourcesPath() {
-    std::filesystem::path exePath = std::filesystem::current_path();
-    return exePath.string() + "/resources/";
-}
-
-enum GameState { MENU, MAP_SELECT, SINGLE_PLAYER, MULTIPLAYER, BUYING, CONNECTING };
-enum WeaponType { AK47, AWP, DEAGLE };
+enum GameState { MENU, MAP_SELECT, PLAYING, BUYING, CONNECTING };
 
 class Player {
 public:
@@ -25,18 +18,15 @@ public:
     bool isCrouching, isGrounded;
     int health, money;
     Sound footstepSound;
-    Player(std::string resPath) : speed(5.0f), gravity(-9.8f), jumpForce(8.0f), crouchY(0.0f), bobbingTime(0.0f), isCrouching(false), isGrounded(true), health(100), money(800), velocity({0,0,0}) {
+    Player() : speed(5.0f), gravity(-9.8f), jumpForce(8.0f), crouchY(0.0f), bobbingTime(0.0f), isCrouching(false), isGrounded(true), health(100), money(800), velocity({0,0,0}) {
         position = {0.0f, 2.0f, 4.0f};
         camera.position = position;
         camera.target = {0.0f, 2.0f, 0.0f};
         camera.up = {0.0f, 1.0f, 0.0f};
         camera.fovy = 60.0f;
         camera.projection = CAMERA_PERSPECTIVE;
-        std::string soundPath = resPath + "sounds/footsteps.wav";
-        if (FileExists(soundPath.c_str())) {
-            footstepSound = LoadSound(soundPath.c_str());
-        } else {
-            // Fallback: no sound
+        if (FileExists("resources/sounds/footsteps.wav")) {
+            footstepSound = LoadSound("resources/sounds/footsteps.wav");
         }
     }
     void Update(bool& playFootstep) {
@@ -59,10 +49,6 @@ public:
         if (isGrounded && IsKeyPressed(KEY_SPACE)) {
             velocity.y = jumpForce;
             isGrounded = false;
-        }
-        if (!isGrounded) {
-            velocity.x = targetVel.x;
-            velocity.z = targetVel.z;
         }
         velocity.y += gravity * GetFrameTime();
         position.y += velocity.y * GetFrameTime();
@@ -94,38 +80,19 @@ public:
     void TakeRecoil(float amount) {
         camera.target.y -= amount;
     }
-    ~Player() {
-        UnloadSound(footstepSound);
-    }
 };
 
 class Weapon {
 public:
-    Model model;
     WeaponType type;
     float sway, recoil, fireRate, zoomFOV;
     bool isZoomed;
     Sound shootSound;
-    Weapon(WeaponType t, std::string resPath) : type(t), sway(0), recoil(0), fireRate(0), zoomFOV(60.0f), isZoomed(false) {
+    Weapon(WeaponType t = AK47) : type(t), sway(0), recoil(0), fireRate(0), zoomFOV(60.0f), isZoomed(false) {
         if (t == AWP) zoomFOV = 20.0f;
-        // Try .obj first, then .mdl (converted), fallback to cube
-        std::string modelPath = resPath + "models/v_" + std::string(t == AK47 ? "ak47" : t == AWP ? "awp" : "knife") + ".obj";
-        if (FileExists(modelPath.c_str())) {
-            model = LoadModel(modelPath.c_str());
-        } else {
-            std::string mdlPath = resPath + "models/v_" + std::string(t == AK47 ? "ak47" : t == AWP ? "awp" : "knife") + ".mdl";
-            if (FileExists(mdlPath.c_str())) {
-                // Note: Raylib doesn't support .mdl directly. Convert to .obj first.
-                model = LoadModelFromMesh(GenMeshCube(0.5f, 0.2f, 1.0f));  // Placeholder
-            } else {
-                model = LoadModelFromMesh(GenMeshCube(0.5f, 0.2f, 1.0f));
-            }
-        }
-        std::string soundPath = resPath + "sounds/shot.wav";
+        std::string soundPath = "resources/sounds/shot.wav";
         if (FileExists(soundPath.c_str())) {
             shootSound = LoadSound(soundPath.c_str());
-        } else {
-            // Fallback: no sound
         }
     }
     void Update(bool moving, Player& player) {
@@ -145,7 +112,22 @@ public:
         float tilt = -0.1f;
         float crouchOffset = crouching ? -0.5f : 0.0f;
         Vector3 pos = {1.0f + sinf(sway) * 0.1f - recoil, -0.5f + cosf(sway) * 0.1f + tilt + bobbing * 0.1f + crouchOffset, 1.0f};
-        DrawModel(model, pos, 1.0f, WHITE);
+        if (type == AK47) {
+            DrawCylinder({pos.x + 0.5f, pos.y, pos.z}, 0.05f, 0.05f, 0.8f, 16, GRAY);
+            DrawCube({pos.x, pos.y, pos.z}, 0.4f, 0.15f, 0.6f, DARKGRAY);
+            DrawCube({pos.x - 0.3f, pos.y, pos.z}, 0.2f, 0.1f, 0.4f, BROWN);
+            DrawCube({pos.x - 0.1f, pos.y - 0.1f, pos.z}, 0.1f, 0.2f, 0.1f, BROWN);
+            DrawCube({pos.x, pos.y - 0.05f, pos.z + 0.2f}, 0.08f, 0.4f, 0.05f, DARKGRAY);
+        } else if (type == AWP) {
+            DrawCylinder({pos.x + 0.7f, pos.y, pos.z}, 0.04f, 0.04f, 1.2f, 16, DARKGREEN);
+            DrawCube({pos.x, pos.y, pos.z}, 0.5f, 0.15f, 0.7f, DARKGREEN);
+            DrawCylinder({pos.x + 0.2f, pos.y + 0.1f, pos.z}, 0.02f, 0.02f, 0.2f, 16, BLACK);
+            DrawCube({pos.x - 0.4f, pos.y, pos.z}, 0.3f, 0.1f, 0.5f, BROWN);
+            DrawCube({pos.x - 0.2f, pos.y - 0.05f, pos.z}, 0.05f, 0.1f, 0.1f, GRAY);
+        } else {
+            DrawCylinder({pos.x + 0.2f, pos.y, pos.z}, 0.01f, 0.02f, 0.3f, 16, LIGHTGRAY);
+            DrawCube({pos.x - 0.1f, pos.y, pos.z}, 0.15f, 0.05f, 0.2f, DARKBROWN);
+        }
         if (fireRate > 0 && fireRate < 0.05f) {
             DrawSphere({pos.x + 0.8f, pos.y, pos.z}, 0.1f, YELLOW);
         }
@@ -164,67 +146,32 @@ public:
             player.TakeRecoil(0.15f);
         }
     }
-    ~Weapon() {
-        UnloadModel(model);
-        UnloadSound(shootSound);
-    }
 };
 
 class MapManager {
 public:
-    Model mapModel;
     std::vector<Vector3> wallPositions;
-    std::string currentMap;
-    MapManager(std::string resPath, std::string mapName = "dust2") : currentMap(mapName) {
-        LoadMap(resPath, mapName);
-    }
-    void LoadMap(std::string resPath, std::string mapName) {
-        currentMap = mapName;
-        std::string mapPath = resPath + "maps/" + mapName + ".obj";
-        if (FileExists(mapPath.c_str())) {
-            mapModel = LoadModel(mapPath.c_str());
-        } else {
-            // Generate fallback based on mapName
-            if (mapName == "dust2") {
-                GenerateDust2();
-            } else if (mapName == "mirage") {
-                GenerateMirage();
-            } else {
-                GenerateDust2();  // Default
-            }
-        }
-    }
+    std::vector<Vector3> boxPositions;
     void GenerateDust2() {
-        mapModel = LoadModelFromMesh(GenMeshCube(10.0f, 1.0f, 10.0f));
-        wallPositions.clear();
         for (int i = 0; i < 20; ++i) {
             for (int j = 0; j < 20; ++j) {
                 if (i == 0 || i == 19 || j == 0 || j == 19) {
                     wallPositions.push_back({(float)j * 2.0f - 20.0f, 2.0f, (float)i * 2.0f - 20.0f});
                 }
-            }
-        }
-    }
-    void GenerateMirage() {
-        mapModel = LoadModelFromMesh(GenMeshCube(10.0f, 1.0f, 10.0f));
-        wallPositions.clear();
-        // Different layout
-        for (int i = 0; i < 20; ++i) {
-            for (int j = 0; j < 20; ++j) {
-                if (i == 5 && j > 5 && j < 15) {
-                    wallPositions.push_back({(float)j * 2.0f - 20.0f, 2.0f, (float)i * 2.0f - 20.0f});
+                if ((i == 5 && j > 5 && j < 15) || (i == 10 && j > 2 && j < 8) || (i == 15 && j > 10 && j < 18)) {
+                    boxPositions.push_back({(float)j * 2.0f - 20.0f, 0.5f, (float)i * 2.0f - 20.0f});
                 }
             }
         }
     }
     void Draw() {
-        DrawModel(mapModel, {0.0f, 0.0f, 0.0f}, 1.0f, BEIGE);
+        DrawCube({0.0f, -0.5f, 0.0f}, 100.0f, 1.0f, 100.0f, BEIGE);
         for (const auto& pos : wallPositions) {
             DrawCube(pos, 1.0f, 4.0f, 1.0f, YELLOW);
         }
-    }
-    ~MapManager() {
-        UnloadModel(mapModel);
+        for (const auto& pos : boxPositions) {
+            DrawCube(pos, 1.0f, 1.0f, 1.0f, DARKGRAY);
+        }
     }
 };
 
@@ -232,9 +179,9 @@ class UIManager {
 public:
     static void DrawMenu(int w, int h, std::vector<std::string>& assetsFound) {
         DrawText("CS 3 AI", w/2 - 50, h/2 - 100, 40, BLACK);
-        DrawText("Press 1: Single Player (Bots)", w/2 - 120, h/2 - 50, 20, GRAY);
-        DrawText("Press 2: Multiplayer (Online)", w/2 - 120, h/2 - 20, 20, GRAY);
-        DrawText("Press 3: Connect to CS 1.6 Server", w/2 - 140, h/2 + 10, 20, GRAY);
+        DrawText("Press 1: Single Player", w/2 - 120, h/2 - 50, 20, GRAY);
+        DrawText("Press 2: Multiplayer", w/2 - 120, h/2 - 20, 20, GRAY);
+        DrawText("Press 3: Connect to CS 1.6", w/2 - 140, h/2 + 10, 20, GRAY);
         DrawText("Assets Loaded:", w/2 - 80, h/2 + 50, 20, GREEN);
         for (size_t i = 0; i < assetsFound.size(); ++i) {
             DrawText(assetsFound[i].c_str(), w/2 - 100, h/2 + 70 + i * 20, 15, LIGHTGRAY);
@@ -271,19 +218,18 @@ public:
     }
 };
 
-std::vector<std::string> DetectAssets(std::string resPath) {
+std::vector<std::string> DetectAssets() {
     std::vector<std::string> assets;
     std::vector<std::string> dirs = {"models", "sounds"};
     std::vector<std::string> exts = {".obj", ".mdl", ".wav"};
     for (auto& dir : dirs) {
-        std::string path = resPath + dir + "/";
         for (auto& ext : exts) {
-            std::string file = "ak47" + ext;
-            if (FileExists((path + file).c_str())) assets.push_back(dir + ": " + file);
-            file = "awp" + ext;
-            if (FileExists((path + file).c_str())) assets.push_back(dir + ": " + file);
-            file = "shot" + ext;
-            if (FileExists((path + file).c_str())) assets.push_back(dir + ": " + file);
+            std::string path = "resources/" + dir + "/ak47" + ext;
+            if (FileExists(path.c_str())) assets.push_back(dir + ": ak47" + ext);
+            path = "resources/" + dir + "/awp" + ext;
+            if (FileExists(path.c_str())) assets.push_back(dir + ": awp" + ext);
+            path = "resources/" + dir + "/shot" + ext;
+            if (FileExists(path.c_str())) assets.push_back(dir + ": shot" + ext);
         }
     }
     return assets;
@@ -292,14 +238,14 @@ std::vector<std::string> DetectAssets(std::string resPath) {
 int main() {
     const int screenWidth = 1280;
     const int screenHeight = 720;
-    std::string resPath = GetResourcesPath();
     GameState currentState = MENU;
-    std::vector<std::string> assetsFound = DetectAssets(resPath);
+    std::vector<std::string> assetsFound = DetectAssets();
     std::vector<std::string> maps = {"dust2", "mirage", "inferno", "cache"};
     std::string selectedMap = "dust2";
-    Player player(resPath);
-    Weapon weapon(AK47, resPath);
-    MapManager mapManager(resPath, selectedMap);
+    Player player;
+    Weapon weapon(AK47);
+    MapManager mapManager;
+    mapManager.GenerateDust2();
 
     InitWindow(screenWidth, screenHeight, "CS 3 AI");
     InitAudioDevice();
@@ -311,20 +257,16 @@ int main() {
     while (!WindowShouldClose()) {
         if (currentState == MENU) {
             if (IsKeyPressed(KEY_ONE)) currentState = MAP_SELECT;
-            if (IsKeyPressed(KEY_TWO)) currentState = MAP_SELECT;  // Then multiplayer
+            if (IsKeyPressed(KEY_TWO)) currentState = MAP_SELECT;
             if (IsKeyPressed(KEY_THREE)) currentState = CONNECTING;
         } else if (currentState == MAP_SELECT) {
             for (size_t i = 0; i < maps.size(); ++i) {
                 if (IsKeyPressed(KEY_ONE + i)) {
                     selectedMap = maps[i];
-                    mapManager.LoadMap(resPath, selectedMap);
-                    currentState = (currentState == MAP_SELECT && IsKeyPressed(KEY_ONE)) ? SINGLE_PLAYER : MULTIPLAYER;
-                    currentState = PLAYING;  // Simplified
+                    currentState = PLAYING;
                 }
             }
             if (IsKeyPressed(KEY_ESCAPE)) currentState = MENU;
-        } else if (currentState == CONNECTING) {
-            // Cannot connect to CS 1.6
         } else if (currentState == PLAYING) {
             player.LookAround();
             player.Update(playFootstep);
@@ -337,10 +279,12 @@ int main() {
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) weapon.Shoot(player);
             if (IsKeyPressed(KEY_B)) currentState = BUYING;
         } else if (currentState == BUYING) {
-            if (IsKeyPressed(KEY_ONE) && player.money >= 2700) { player.money -= 2700; weapon = Weapon(AK47, resPath); }
-            if (IsKeyPressed(KEY_TWO) && player.money >= 4750) { player.money -= 4750; weapon = Weapon(AWP, resPath); }
-            if (IsKeyPressed(KEY_THREE) && player.money >= 700) { player.money -= 700; weapon = Weapon(DEAGLE, resPath); }
+            if (IsKeyPressed(KEY_ONE) && player.money >= 2700) { player.money -= 2700; weapon = Weapon(AK47); }
+            if (IsKeyPressed(KEY_TWO) && player.money >= 4750) { player.money -= 4750; weapon = Weapon(AWP); }
+            if (IsKeyPressed(KEY_THREE) && player.money >= 700) { player.money -= 700; weapon = Weapon(DEAGLE); }
             if (IsKeyPressed(KEY_ESCAPE)) currentState = PLAYING;
+        } else if (currentState == CONNECTING) {
+            // Cannot connect
         }
 
         BeginDrawing();
@@ -350,15 +294,8 @@ int main() {
         } else if (currentState == MAP_SELECT) {
             ClearBackground(BLUE);
             UIManager::DrawMapSelect(screenWidth, screenHeight, maps);
-        } else if (currentState == CONNECTING) {
-            ClearBackground(BLACK);
-            DrawText("Cannot connect to CS 1.6 servers (different engine)", screenWidth/2 - 200, screenHeight/2, 20, RED);
-            DrawText("Press ESC to return", screenWidth/2 - 100, screenHeight/2 + 30, 20, WHITE);
         } else if (currentState == BUYING) {
-            ClearBackground(DARKBLUE);
-            BeginMode3D(player.camera);
-            mapManager.Draw();
-            EndMode3D();
+            ClearBackground(BLACK);
             UIManager::DrawBuyMenu(screenWidth, screenHeight, player.money);
         } else if (currentState == PLAYING) {
             ClearBackground(DARKBLUE);
@@ -368,6 +305,10 @@ int main() {
             weapon.Draw(sinf(player.bobbingTime), player.isCrouching);
             UIManager::DrawHUD(player.health, 30, player.money);
             UIManager::DrawCrosshair(screenWidth, screenHeight);
+        } else if (currentState == CONNECTING) {
+            ClearBackground(BLACK);
+            DrawText("Cannot connect to CS 1.6 servers", screenWidth/2 - 200, screenHeight/2, 20, RED);
+            DrawText("Press ESC to return", screenWidth/2 - 100, screenHeight/2 + 30, 20, WHITE);
         }
         EndDrawing();
     }
