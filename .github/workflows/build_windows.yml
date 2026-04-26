@@ -25,3 +25,16 @@ jobs:
       with:
         name: CS3-Game-Build
         path: build/Release/*.exe
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v0.1-alpha
+        name: CS3 AI v0.1 Alpha
+        body: |
+          First alpha release of CS3 AI game.
+          - Basic 3D movement and shooting
+          - AI integration placeholder
+        files: build/Release/*.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
