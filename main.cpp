@@ -15,17 +15,19 @@ public:
     Vector3 velocity;
     Camera camera;
     float speed, gravity, jumpForce, crouchY, bobbingTime;
-    bool isCrouching;
+    bool isCrouching, isGrounded;
     int health, money;
-    Player() : speed(5.0f), gravity(-9.8f), jumpForce(8.0f), crouchY(0.0f), bobbingTime(0.0f), isCrouching(false), health(100), money(800), velocity({0,0,0}) {
+    Sound footstepSound;
+    Player() : speed(5.0f), gravity(-9.8f), jumpForce(8.0f), crouchY(0.0f), bobbingTime(0.0f), isCrouching(false), isGrounded(true), health(100), money(800), velocity({0,0,0}) {
         position = {0.0f, 2.0f, 4.0f};
         camera.position = position;
         camera.target = {0.0f, 2.0f, 0.0f};
         camera.up = {0.0f, 1.0f, 0.0f};
         camera.fovy = 60.0f;
         camera.projection = CAMERA_PERSPECTIVE;
+        footstepSound = LoadSound("resources/sounds/footsteps.wav");
     }
-    void Update(const std::vector<Vector3>& walls) {
+    void Update(bool& playFootstep) {
         Vector3 targetVel = {0, velocity.y, 0};
         if (IsKeyDown(KEY_W)) targetVel.z -= speed;
         if (IsKeyDown(KEY_S)) targetVel.z += speed;
@@ -38,40 +40,31 @@ public:
         if (IsKeyDown(KEY_LEFT_CONTROL)) {
             isCrouching = true;
             crouchY = -1.0f;
-            speed = 2.5f;
         } else {
             isCrouching = false;
             crouchY = 0.0f;
-            speed = 5.0f;
         }
 
-        // Jump
-        if (IsKeyPressed(KEY_SPACE) && position.y <= 0.1f) {
+        // Jump and Air Strafing
+        if (isGrounded && IsKeyPressed(KEY_SPACE)) {
             velocity.y = jumpForce;
+            isGrounded = false;
+        }
+        if (!isGrounded) {
+            // Air strafing: allow full control
+            velocity.x = targetVel.x;
+            velocity.z = targetVel.z;
         }
         velocity.y += gravity * GetFrameTime();
         position.y += velocity.y * GetFrameTime();
         if (position.y < 0.0f) {
             position.y = 0.0f;
             velocity.y = 0;
+            isGrounded = true;
         }
 
         position.x += velocity.x * GetFrameTime();
         position.z += velocity.z * GetFrameTime();
-
-        // Collision
-        bool canMove = true;
-        for (const auto& wall : walls) {
-            if (Vector3Distance(position, wall) < 1.5f) {
-                canMove = false;
-                velocity = {0, velocity.y, 0};
-                break;
-            }
-        }
-        if (!canMove) {
-            position.x -= velocity.x * GetFrameTime();
-            position.z -= velocity.z * GetFrameTime();
-        }
 
         camera.position = position;
         camera.position.y += crouchY;
@@ -80,6 +73,7 @@ public:
         if (fabs(velocity.x) > 0.1f || fabs(velocity.z) > 0.1f) {
             bobbingTime += GetFrameTime() * 10.0f;
             camera.position.y += sinf(bobbingTime) * 0.05f;
+            if (fmod(bobbingTime, 1.0f) < 0.1f) playFootstep = true;
         } else {
             bobbingTime = 0.0f;
         }
@@ -92,15 +86,27 @@ public:
     void TakeRecoil(float amount) {
         camera.target.y -= amount;
     }
+    ~Player() {
+        UnloadSound(footstepSound);
+    }
 };
 
 class Weapon {
 public:
+    Model model;
     WeaponType type;
     float sway, recoil, fireRate, zoomFOV;
     bool isZoomed;
+    Sound shootSound;
     Weapon(WeaponType t = AK47) : type(t), sway(0), recoil(0), fireRate(0), zoomFOV(60.0f), isZoomed(false) {
         if (t == AWP) zoomFOV = 20.0f;
+        std::string modelPath = "resources/models/" + std::string(t == AK47 ? "ak47" : t == AWP ? "awp" : "deagle") + ".obj";
+        if (FileExists(modelPath.c_str())) {
+            model = LoadModel(modelPath.c_str());
+        } else {
+            model = LoadModelFromMesh(GenMeshCube(0.5f, 0.2f, 1.0f));  // Fallback cube
+        }
+        shootSound = LoadSound("resources/sounds/shot.wav");
     }
     void Update(bool moving, Player& player) {
         if (moving) sway += 0.2f;
@@ -119,28 +125,14 @@ public:
         float tilt = -0.1f;
         float crouchOffset = crouching ? -0.5f : 0.0f;
         Vector3 pos = {1.0f + sinf(sway) * 0.1f - recoil, -0.5f + cosf(sway) * 0.1f + tilt + bobbing * 0.1f + crouchOffset, 1.0f};
-        if (type == AK47) {
-            DrawCylinder({pos.x + 0.5f, pos.y, pos.z}, 0.05f, 0.05f, 0.8f, 16, BLACK);  // Barrel
-            DrawCube({pos.x, pos.y, pos.z}, 0.4f, 0.15f, 0.6f, DARKGRAY);  // Receiver
-            DrawCube({pos.x - 0.3f, pos.y, pos.z}, 0.2f, 0.1f, 0.4f, BROWN);  // Stock
-            DrawCube({pos.x - 0.1f, pos.y - 0.1f, pos.z}, 0.1f, 0.2f, 0.1f, BROWN);  // Handle
-            DrawCube({pos.x, pos.y - 0.05f, pos.z + 0.2f}, 0.08f, 0.4f, 0.05f, DARKGRAY);  // Mag
-        } else if (type == AWP) {
-            DrawCylinder({pos.x + 0.7f, pos.y, pos.z}, 0.04f, 0.04f, 1.2f, 16, DARKGREEN);  // Barrel
-            DrawCube({pos.x, pos.y, pos.z}, 0.5f, 0.15f, 0.7f, DARKGREEN);  // Receiver
-            DrawCylinder({pos.x + 0.2f, pos.y + 0.1f, pos.z}, 0.02f, 0.02f, 0.2f, 16, BLACK);  // Scope
-            DrawCube({pos.x - 0.4f, pos.y, pos.z}, 0.3f, 0.1f, 0.5f, BROWN);  // Stock
-            DrawCube({pos.x - 0.2f, pos.y - 0.05f, pos.z}, 0.05f, 0.1f, 0.1f, GRAY);  // Bipod
-        } else {
-            DrawCylinder({pos.x + 0.2f, pos.y, pos.z}, 0.01f, 0.02f, 0.3f, 16, LIGHTGRAY);  // Blade
-            DrawCube({pos.x - 0.1f, pos.y, pos.z}, 0.15f, 0.05f, 0.2f, DARKBROWN);  // Handle
-        }
+        DrawModel(model, pos, 1.0f, WHITE);
         // Muzzle flash
         if (fireRate > 0 && fireRate < 0.05f) {
             DrawSphere({pos.x + 0.8f, pos.y, pos.z}, 0.1f, YELLOW);
         }
     }
     void Shoot(Player& player) {
+        PlaySound(shootSound);
         if (type == AK47 && fireRate <= 0) {
             recoil = 0.15f;
             fireRate = 0.1f;
@@ -153,39 +145,27 @@ public:
             player.TakeRecoil(0.15f);
         }
     }
+    ~Weapon() {
+        UnloadModel(model);
+        UnloadSound(shootSound);
+    }
 };
 
 class MapManager {
 public:
-    std::vector<Vector3> wallPositions;
-    std::vector<Vector3> boxPositions;
-    void GenerateDust2() {
-        // A-Site with walls, boxes, sand ground
-        for (int i = 0; i < 20; ++i) {
-            for (int j = 0; j < 20; ++j) {
-                if (i == 0 || i == 19 || j == 0 || j == 19) {  // Outer walls
-                    wallPositions.push_back({(float)j * 2.0f - 20.0f, 2.0f, (float)i * 2.0f - 20.0f});
-                }
-                if ((i == 5 && j > 5 && j < 15) || (i == 10 && j > 2 && j < 8) || (i == 15 && j > 10 && j < 18)) {  // Boxes
-                    boxPositions.push_back({(float)j * 2.0f - 20.0f, 0.5f, (float)i * 2.0f - 20.0f});
-                }
-            }
+    Model mapModel;
+    MapManager() {
+        if (FileExists("resources/models/dust2.obj")) {
+            mapModel = LoadModel("resources/models/dust2.obj");
+        } else {
+            mapModel = LoadModelFromMesh(GenMeshCube(10.0f, 1.0f, 10.0f));  // Fallback
         }
     }
     void Draw() {
-        // Sand ground
-        DrawCube({0.0f, -0.5f, 0.0f}, 100.0f, 1.0f, 100.0f, BEIGE);
-        // Walls
-        for (const auto& pos : wallPositions) {
-            DrawCube(pos, 1.0f, 4.0f, 1.0f, YELLOW);
-        }
-        // Boxes with shades of brown
-        int shade = 0;
-        for (const auto& pos : boxPositions) {
-            Color brownShade = (shade % 3 == 0) ? BROWN : (shade % 3 == 1) ? DARKBROWN : MAROON;
-            DrawCube(pos, 1.0f, 1.0f, 1.0f, brownShade);
-            shade++;
-        }
+        DrawModel(mapModel, {0.0f, 0.0f, 0.0f}, 1.0f, BEIGE);
+    }
+    ~MapManager() {
+        UnloadModel(mapModel);
     }
 };
 
@@ -208,7 +188,9 @@ public:
         DrawText("Press ESC to exit", w/2 - 100, h/2 + 120, 20, WHITE);
     }
     static void DrawHUD(int health, int ammo, int money) {
-        DrawText(TextFormat("Health: %d Ammo: %d Money: $%d", health, ammo, money), 10, 10, 20, WHITE);
+        DrawText(TextFormat("Health: %d", health), 10, 10, 20, ORANGE);
+        DrawText(TextFormat("Ammo: %d", ammo), 10, 35, 20, YELLOW);
+        DrawText(TextFormat("Money: $%d", money), 10, 60, 20, GREEN);
     }
     static void DrawCrosshair(int w, int h) {
         int cx = w/2, cy = h/2;
@@ -224,18 +206,24 @@ int main() {
     Player player;
     Weapon weapon(AK47);
     MapManager mapManager;
-    mapManager.GenerateDust2();
 
     InitWindow(screenWidth, screenHeight, "CS 3 AI");
+    InitAudioDevice();
     SetTargetFPS(60);
     DisableCursor();
+
+    bool playFootstep = false;
 
     while (!WindowShouldClose()) {
         if (currentState == MENU) {
             if (IsKeyPressed(KEY_ENTER)) currentState = PLAYING;
         } else if (currentState == PLAYING) {
             player.LookAround();
-            player.Update(mapManager.wallPositions);
+            player.Update(playFootstep);
+            if (playFootstep) {
+                PlaySound(player.footstepSound);
+                playFootstep = false;
+            }
             bool moving = IsKeyDown(KEY_W) || IsKeyDown(KEY_S) || IsKeyDown(KEY_A) || IsKeyDown(KEY_D);
             weapon.Update(moving, player);
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) weapon.Shoot(player);
@@ -269,6 +257,7 @@ int main() {
         EndDrawing();
     }
 
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }

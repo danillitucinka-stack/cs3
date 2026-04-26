@@ -32,6 +32,13 @@ add_executable(cs3_ai main.cpp)
 # Link libraries
 target_link_libraries(cs3_ai raylib nlohmann_json::nlohmann_json)
 
+# Copy resources to build directory
+configure_file(resources/models/dust2.obj ${CMAKE_BINARY_DIR}/resources/models/dust2.obj COPYONLY)
+configure_file(resources/models/ak47.obj ${CMAKE_BINARY_DIR}/resources/models/ak47.obj COPYONLY)
+configure_file(resources/models/awp.obj ${CMAKE_BINARY_DIR}/resources/models/awp.obj COPYONLY)
+configure_file(resources/sounds/shot.wav ${CMAKE_BINARY_DIR}/resources/sounds/shot.wav COPYONLY)
+configure_file(resources/sounds/footsteps.wav ${CMAKE_BINARY_DIR}/resources/sounds/footsteps.wav COPYONLY)
+
 # Copy raylib.dll if needed
 if(WIN32)
     add_custom_command(TARGET cs3_ai POST_BUILD
