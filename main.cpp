@@ -17,9 +17,10 @@ private:
     Model ground;
     Model enemy;
     Vector3 enemyPosition;
+    int flashFrames;  // For shooting flash
 
 public:
-    GameLoop() : currentState(MENU), playerSpeed(5.0f), mouseSensitivity(0.003f) {
+    GameLoop() : currentState(MENU), playerSpeed(5.0f), mouseSensitivity(0.003f), flashFrames(0) {
         playerPosition = {0.0f, 2.0f, 4.0f};
         camera.position = playerPosition;
         camera.target = {0.0f, 2.0f, 0.0f};
@@ -32,8 +33,8 @@ public:
     void Initialize(int screenWidth, int screenHeight) {
         InitWindow(screenWidth, screenHeight, "CS 3 AI");
         SetTargetFPS(60);
-        ground = LoadModelFromMesh(GenMeshPlane(20.0f, 20.0f, 1, 1));
-        enemy = LoadModelFromMesh(GenMeshCube(1.0f, 2.0f, 1.0f));
+        ground = LoadModelFromMesh(GenMeshPlane(100.0f, 100.0f, 10, 10));  // Larger grid plane
+        enemy = LoadModelFromMesh(GenMeshCylinder(0.5f, 2.0f, 16));  // Cylinder for enemy
     }
 
     void Update() {
@@ -48,7 +49,9 @@ public:
             if (IsKeyDown(KEY_D)) playerPosition.x += playerSpeed * GetFrameTime();
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 TraceLog(LOG_INFO, "Shot fired");
+                flashFrames = 30;  // Flash for 30 frames
             }
+            if (flashFrames > 0) flashFrames--;
             // Read bot_status.json
             std::ifstream file("bot_status.json");
             if (file.is_open()) {
@@ -79,12 +82,25 @@ public:
             DrawText("CS 3 AI", screenWidth / 2 - MeasureText("CS 3 AI", 40) / 2, screenHeight / 2 - 50, 40, BLACK);
             DrawText("Press ENTER to START", screenWidth / 2 - MeasureText("Press ENTER to START", 20) / 2, screenHeight / 2, 20, GRAY);
         } else if (currentState == BATTLE) {
-            ClearBackground(RAYWHITE);
+            ClearBackground(DARKBLUE);  // Sky background
             BeginMode3D(camera);
             DrawModel(ground, {0.0f, 0.0f, 0.0f}, 1.0f, GRAY);
             DrawModel(enemy, enemyPosition, 1.0f, RED);
+            // Simple face on enemy
+            DrawCube({enemyPosition.x, enemyPosition.y + 0.5f, enemyPosition.z + 0.3f}, 0.1f, 0.1f, 0.1f, BLACK);  // Eyes
+            DrawCube({enemyPosition.x, enemyPosition.y + 0.3f, enemyPosition.z + 0.3f}, 0.05f, 0.05f, 0.05f, BLACK);  // Mouth
+            if (flashFrames > 0) {
+                // Shooting flash: yellow sphere at look direction
+                Vector3 flashPos = Vector3Add(camera.position, Vector3Scale(Vector3Normalize(Vector3Subtract(camera.target, camera.position)), 5.0f));
+                DrawSphere(flashPos, 0.2f, YELLOW);
+            }
             EndMode3D();
-            DrawText("WASD to move, Mouse to look, Left click to shoot", 10, 10, 20, BLACK);
+            // Crosshair
+            int centerX = screenWidth / 2;
+            int centerY = screenHeight / 2;
+            DrawLine(centerX - 10, centerY, centerX + 10, centerY, WHITE);
+            DrawLine(centerX, centerY - 10, centerX, centerY + 10, WHITE);
+            DrawText("WASD to move, Mouse to look, Left click to shoot", 10, 10, 20, WHITE);
             DrawFPS(10, 30);
         } else if (currentState == PAUSE) {
             ClearBackground(BLACK);
