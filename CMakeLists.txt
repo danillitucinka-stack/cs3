@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.11)
 project(CS3_AI)
 
+set(CMAKE_CXX_STANDARD 17)
+
 include(FetchContent)
 
 # Fetch raylib 5.0

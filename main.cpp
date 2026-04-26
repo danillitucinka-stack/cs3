@@ -22,8 +22,8 @@ public:
     GameLoop() : currentState(MENU), playerSpeed(5.0f), mouseSensitivity(0.003f) {
         playerPosition = {0.0f, 2.0f, 4.0f};
         camera.position = playerPosition;
-        camera.target = (Vector3){0.0f, 2.0f, 0.0f};
-        camera.up = (Vector3){0.0f, 1.0f, 0.0f};
+        camera.target = {0.0f, 2.0f, 0.0f};
+        camera.up = {0.0f, 1.0f, 0.0f};
         camera.fovy = 60.0f;
         camera.projection = CAMERA_PERSPECTIVE;
         enemyPosition = {0.0f, 1.0f, -5.0f};
@@ -81,7 +81,7 @@ public:
         } else if (currentState == BATTLE) {
             ClearBackground(RAYWHITE);
             BeginMode3D(camera);
-            DrawModel(ground, (Vector3){0.0f, 0.0f, 0.0f}, 1.0f, GRAY);
+            DrawModel(ground, {0.0f, 0.0f, 0.0f}, 1.0f, GRAY);
             DrawModel(enemy, enemyPosition, 1.0f, RED);
             EndMode3D();
             DrawText("WASD to move, Mouse to look, Left click to shoot", 10, 10, 20, BLACK);
