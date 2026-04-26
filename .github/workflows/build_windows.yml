@@ -2,7 +2,9 @@ name: Build Windows
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
   build:
@@ -12,8 +14,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install MSVC
-      uses: microsoft/setup-msbuild@v1
+    - name: Install CMake and Ninja
+      run: |
+        choco install cmake ninja
 
     - name: Install vcpkg
       run: |
@@ -22,19 +25,19 @@ jobs:
         .\bootstrap-vcpkg.bat
         .\vcpkg integrate install
 
-    - name: Install dependencies
+    - name: Install Raylib via vcpkg
       run: |
         cd vcpkg
-        .\vcpkg install raylib nlohmann-json
+        .\vcpkg install raylib:x64-windows
 
     - name: Configure CMake
-      run: cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+      run: cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -G Ninja
 
     - name: Build
       run: cmake --build build --config Release
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: cs3_ai
-        path: build/Release/cs3_ai.exe
+        name: CS3-Game-Build
+        path: build/Release/
