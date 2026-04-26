@@ -1,32 +1,28 @@
 cmake_minimum_required(VERSION 3.11)
-project(cs3_ai)
+project(CS3_AI)
 
 include(FetchContent)
 
-# Try to find raylib via vcpkg
-find_package(raylib QUIET)
+# Fetch raylib 5.0
+FetchContent_Declare(
+    raylib
+    URL https://github.com/raysan5/raylib/archive/refs/tags/5.0.tar.gz
+)
+FetchContent_MakeAvailable(raylib)
 
-if(NOT raylib_FOUND)
-    # Fallback: Fetch raylib 5.0
-    set(RAYLIB_VERSION 5.0)
-    FetchContent_Declare(
-        raylib
-        URL https://github.com/raysan5/raylib/archive/refs/tags/${RAYLIB_VERSION}.tar.gz
-    )
-    FetchContent_MakeAvailable(raylib)
-endif()
+# Set raylib build options for speed
+set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
 
-# Try to find nlohmann/json via vcpkg
-find_package(nlohmann_json QUIET)
+# MSVC runtime
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:DLL>")
 
-if(NOT nlohmann_json_FOUND)
-    # Fallback: Fetch nlohmann/json
-    FetchContent_Declare(
-        nlohmann_json
-        URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
-    )
-    FetchContent_MakeAvailable(nlohmann_json)
-endif()
+# Fetch nlohmann/json
+FetchContent_Declare(
+    nlohmann_json
+    URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+)
+FetchContent_MakeAvailable(nlohmann_json)
 
 # Include directories
 include_directories(include)
@@ -45,7 +41,7 @@ add_executable(cs3_ai ${SOURCES})
 # Link libraries
 target_link_libraries(cs3_ai raylib nlohmann_json::nlohmann_json)
 
-# Copy raylib.dll if needed (for Windows runtime)
+# Copy raylib.dll if needed
 if(WIN32)
     add_custom_command(TARGET cs3_ai POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different

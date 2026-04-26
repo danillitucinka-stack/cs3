@@ -14,24 +14,8 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install CMake and Ninja
-      run: |
-        choco install cmake ninja
-
-    - name: Install vcpkg
-      run: |
-        git clone https://github.com/Microsoft/vcpkg.git
-        cd vcpkg
-        .\bootstrap-vcpkg.bat
-        .\vcpkg integrate install
-
-    - name: Install Raylib via vcpkg
-      run: |
-        cd vcpkg
-        .\vcpkg install raylib:x64-windows
-
     - name: Configure CMake
-      run: cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -G Ninja
+      run: cmake -B build -G "Visual Studio 17 2022" -A x64
 
     - name: Build
       run: cmake --build build --config Release
@@ -40,4 +24,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: CS3-Game-Build
-        path: build/Release/
+        path: build/Release/*.exe
