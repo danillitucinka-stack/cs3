@@ -1,24 +1,23 @@
-cmake_minimum_required(VERSION 3.21)
-project(CS3_AI)
+cmake_minimum_required(VERSION 3.11)
+project(cs3_ai)
 
-set(CMAKE_CXX_STANDARD 17)
+set(RAYLIB_VERSION 5.0)
 
-# Try to find raylib via vcpkg or system
-find_package(raylib QUIET)
+include(FetchContent)
 
-if(NOT raylib_FOUND)
-    # Fallback: Fetch raylib from GitHub
-    include(FetchContent)
-    FetchContent_Declare(
-        raylib
-        GIT_REPOSITORY https://github.com/raysan5/raylib.git
-        GIT_TAG 4.5.0
-    )
-    FetchContent_MakeAvailable(raylib)
-endif()
+# Fetch raylib
+FetchContent_Declare(
+    raylib
+    URL https://github.com/raysan5/raylib/archive/refs/tags/${RAYLIB_VERSION}.tar.gz
+)
+FetchContent_MakeAvailable(raylib)
 
-# Find nlohmann_json
-find_package(nlohmann_json REQUIRED)
+# Fetch nlohmann/json
+FetchContent_Declare(
+    nlohmann_json
+    URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+)
+FetchContent_MakeAvailable(nlohmann_json)
 
 # Include directories
 include_directories(include)
@@ -38,7 +37,7 @@ add_executable(cs3_ai ${SOURCES})
 target_link_libraries(cs3_ai raylib nlohmann_json::nlohmann_json)
 
 # Copy raylib.dll if needed (for Windows runtime)
-if(WIN32 AND TARGET raylib)
+if(WIN32)
     add_custom_command(TARGET cs3_ai POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:raylib> $<TARGET_FILE_DIR:cs3_ai>
