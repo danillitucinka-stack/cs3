@@ -14,16 +14,20 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Download HLLib binaries
+    - name: Create external directory
+      run: New-Item -ItemType Directory -Force -Path external
+
+    - name: Download HLLib sources
       run: |
-        Invoke-WebRequest -Uri https://github.com/nemesisx00/HLLib/releases/download/2.4.1/HLLib_2.4.1.zip -OutFile HLLib.zip
-        Expand-Archive -Path HLLib.zip -DestinationPath external/hllib
+        Invoke-WebRequest -Uri https://github.com/nemesisx00/HLLib/archive/refs/tags/2.4.1.zip -OutFile HLLib.zip
+        Expand-Archive -Path HLLib.zip -DestinationPath external
+        Rename-Item -Path external/HLLib-2.4.1 -NewName external/hllib
 
     - name: Configure CMake
       run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
 
     - name: Build
-      run: cmake --build build --config Release
+      run: cmake --build build --config Release --parallel
 
     - name: Test
       run: cd build && ctest --output-on-failure

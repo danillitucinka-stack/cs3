@@ -26,7 +26,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# Fetch Bullet Physics (stable method)
+# Fetch Bullet Physics (stable)
 FetchContent_Declare(
     bullet3
     GIT_REPOSITORY https://github.com/bulletphysics/bullet3.git
@@ -34,15 +34,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(bullet3)
 
-# HLLib imported from external folder (downloaded in workflow)
-if(EXISTS ${CMAKE_SOURCE_DIR}/external/hllib/HLLib.lib)
-    add_library(HLLib STATIC IMPORTED)
-    set_target_properties(HLLib PROPERTIES
-        IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/external/hllib/HLLib.lib
-        INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/external/hllib
-    )
+# Build HLLib from sources in external/hllib
+if(EXISTS ${CMAKE_SOURCE_DIR}/external/hllib/CMakeLists.txt)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/external/hllib)
 else()
-    message(FATAL_ERROR "HLLib not found in external/hllib. Ensure workflow downloads it correctly.")
+    message(FATAL_ERROR "HLLib sources not found in external/hllib. Ensure workflow downloads them correctly.")
 endif()
 
 # Executable
@@ -66,18 +62,12 @@ target_link_libraries(cs3_ai
 # Copy resources to build directory
 file(COPY resources DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Release)
 
-# Copy raylib.dll and HLLib.dll if needed
+# Copy dlls if needed
 if(WIN32)
     add_custom_command(TARGET cs3_ai POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:raylib> $<TARGET_FILE_DIR:cs3_ai>
     )
-    if(EXISTS ${CMAKE_SOURCE_DIR}/external/hllib/HLLib.dll)
-        add_custom_command(TARGET cs3_ai POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${CMAKE_SOURCE_DIR}/external/hllib/HLLib.dll $<TARGET_FILE_DIR:cs3_ai>
-        )
-    endif()
 endif()
 
 install(DIRECTORY resources DESTINATION .)
