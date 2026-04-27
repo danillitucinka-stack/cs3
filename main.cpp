@@ -6,7 +6,6 @@
 #include <vector>
 #include <cmath>
 #include <filesystem>
-#include "src/AssetLoader.h"
 #include "src/PhysicsManager.h"
 #include "src/MapManager.h"
 

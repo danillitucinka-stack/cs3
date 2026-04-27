@@ -14,15 +14,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Create external directory
-      run: New-Item -ItemType Directory -Force -Path external
-
-    - name: Checkout HLLib
-      uses: actions/checkout@v4
-      with:
-        repository: syndetic-networks/hllib
-        path: external/hllib
-
     - name: Configure CMake
       run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
 
