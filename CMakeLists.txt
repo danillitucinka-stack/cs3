@@ -34,9 +34,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(bullet3)
 
-# Build HLLib from sources in external/hllib
+# Build HLLib from sources in external/hllib (no FetchContent)
 if(EXISTS ${CMAKE_SOURCE_DIR}/external/hllib/CMakeLists.txt)
     add_subdirectory(${CMAKE_SOURCE_DIR}/external/hllib)
+    # Ensure includes are set
+    target_include_directories(HLLib INTERFACE ${CMAKE_SOURCE_DIR}/external/hllib/include)
 else()
     message(FATAL_ERROR "HLLib sources not found in external/hllib. Ensure workflow downloads them correctly.")
 endif()
