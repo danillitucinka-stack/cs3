@@ -26,27 +26,29 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# Fetch Bullet Physics
+# Fetch Bullet Physics with stable config
 FetchContent_Declare(
     bullet3
     GIT_REPOSITORY https://github.com/bulletphysics/bullet3.git
     GIT_TAG 3.24
+    CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF -DUSE_MSVC_RUNTIME_LIBRARY_DLL=OFF
 )
 FetchContent_MakeAvailable(bullet3)
 
-# Fetch HLLib for asset loading (.wad/.mdl)
+# Fetch HLLib for asset loading (.wad/.mdl) with fixed config
 FetchContent_Declare(
     hllib
     GIT_REPOSITORY https://github.com/nemesisx00/HLLib.git
     GIT_TAG master
+    CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF -DUSE_MSVC_RUNTIME_LIBRARY_DLL=OFF
 )
 FetchContent_MakeAvailable(hllib)
 
 # Executable
 add_executable(cs3_ai main.cpp src/AssetLoader.cpp src/PhysicsManager.cpp src/ResourceManager.cpp)
 
-# Include directories for fetched libraries
-target_include_directories(cs3_ai PRIVATE
+# Include directories for fetched libraries with SYSTEM flag for MSVC
+target_include_directories(cs3_ai SYSTEM PRIVATE
     ${bullet3_SOURCE_DIR}/src
     ${hllib_SOURCE_DIR}/HLLib
 )
