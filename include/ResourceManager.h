@@ -7,9 +7,6 @@
 #include <filesystem>
 #include <btBulletDynamicsCommon.h>
 #include <raylib.h>
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 
 // Structs for loaded resources
 struct TextureResource {
