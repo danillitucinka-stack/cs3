@@ -14,29 +14,31 @@ jobs:
     - name: Checkout project
       uses: actions/checkout@v4
 
-    - name: Checkout raylib
-      uses: actions/checkout@v4
-      with:
-        repository: raysan5/raylib
-        path: external/raylib
+    - name: Create external directory
+      run: New-Item -ItemType Directory -Force -Path external
 
-    - name: Checkout nlohmann/json
-      uses: actions/checkout@v4
-      with:
-        repository: nlohmann/json
-        path: external/json
+    - name: Download raylib
+      run: Invoke-WebRequest -Uri https://github.com/raysan5/raylib/archive/refs/tags/5.0.zip -OutFile raylib.zip
 
-    - name: Checkout HLLib
-      uses: actions/checkout@v4
-      with:
-        repository: nemysis/hllib
-        path: external/hllib
+    - name: Download nlohmann/json
+      run: Invoke-WebRequest -Uri https://github.com/nlohmann/json/archive/refs/tags/v3.11.3.zip -OutFile json.zip
 
-    - name: Checkout Bullet
-      uses: actions/checkout@v4
-      with:
-        repository: bulletphysics/bullet3
-        path: external/bullet3
+    - name: Download HLLib
+      run: Invoke-WebRequest -Uri https://github.com/nemysis/hllib/archive/refs/heads/master.zip -OutFile hllib.zip
+
+    - name: Download Bullet Physics
+      run: Invoke-WebRequest -Uri https://github.com/bulletphysics/bullet3/archive/refs/heads/master.zip -OutFile bullet.zip
+
+    - name: Extract dependencies
+      run: |
+        Expand-Archive -Path raylib.zip -DestinationPath external
+        Rename-Item -Path external/raylib-5.0 -NewName external/raylib
+        Expand-Archive -Path json.zip -DestinationPath external
+        Rename-Item -Path external/json-3.11.3 -NewName external/json
+        Expand-Archive -Path hllib.zip -DestinationPath external
+        Rename-Item -Path external/hllib-master -NewName external/hllib
+        Expand-Archive -Path bullet.zip -DestinationPath external
+        Rename-Item -Path external/bullet3-master -NewName external/bullet3
 
     - name: Configure CMake
       run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
@@ -47,8 +49,8 @@ jobs:
     - name: Test
       run: cd build && ctest --output-on-failure
 
-    - name: Upload artifact
+    - name: Upload Build
       uses: actions/upload-artifact@v4
       with:
-        name: cs3_exe
-        path: build/Release/cs3_ai.exe
+        name: CS3-Game-Build
+        path: build/Release/*.exe
