@@ -42,11 +42,27 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(hllib)
 
+# Fetch Assimp for model loading
+FetchContent_Declare(
+    assimp
+    GIT_REPOSITORY https://github.com/assimp/assimp.git
+    GIT_TAG v5.3.1
+)
+FetchContent_MakeAvailable(assimp)
+
+# Fetch SDL2 for audio and input
+FetchContent_Declare(
+    sdl2
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+    GIT_TAG release-2.28.5
+)
+FetchContent_MakeAvailable(sdl2)
+
 # Executable
-add_executable(cs3_ai main.cpp src/AssetLoader.cpp src/PhysicsManager.cpp)
+add_executable(cs3_ai main.cpp src/AssetLoader.cpp src/PhysicsManager.cpp src/ResourceManager.cpp)
 
 # Link libraries
-target_link_libraries(cs3_ai raylib nlohmann_json::nlohmann_json BulletDynamics BulletCollision LinearMath)
+target_link_libraries(cs3_ai raylib nlohmann_json::nlohmann_json BulletDynamics BulletCollision LinearMath assimp::assimp SDL2::SDL2)
 
 # Copy resources to build directory
 file(COPY resources DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Release)
