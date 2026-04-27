@@ -29,22 +29,8 @@ else()
     message(FATAL_ERROR "Bullet Physics sources not found in external/bullet3.")
 endif()
 
-# Build HLLib from external
-if(EXISTS ${CMAKE_SOURCE_DIR}/external/hllib/CMakeLists.txt)
-    add_subdirectory(${CMAKE_SOURCE_DIR}/external/hllib EXCLUDE_FROM_ALL)
-else()
-    message(FATAL_ERROR "HLLib sources not found in external/hllib.")
-endif()
-
-# Local HLLib from external
-if(EXISTS ${CMAKE_SOURCE_DIR}/external/hllib/CMakeLists.txt)
-    add_subdirectory(${CMAKE_SOURCE_DIR}/external/hllib)
-else()
-    message(FATAL_ERROR "HLLib sources not found in external/hllib.")
-endif()
-
-# Executable
-add_executable(cs3_ai main.cpp src/PhysicsManager.cpp src/ResourceManager.cpp)
+# Executable (include HLLib sources directly)
+add_executable(cs3_ai main.cpp src/PhysicsManager.cpp src/ResourceManager.cpp src/external/hllib/HLLib.cpp)
 
 # Include directories
 target_include_directories(cs3_ai SYSTEM PRIVATE
@@ -58,7 +44,6 @@ target_link_libraries(cs3_ai
     BulletDynamics
     BulletCollision
     LinearMath
-    HLLib
 )
 
 # Copy resources to build directory

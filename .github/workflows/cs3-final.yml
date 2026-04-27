@@ -23,9 +23,6 @@ jobs:
     - name: Download nlohmann/json
       run: Invoke-WebRequest -Uri https://github.com/nlohmann/json/archive/refs/tags/v3.11.3.zip -OutFile json.zip
 
-    - name: Download HLLib
-      run: Invoke-WebRequest -Uri https://github.com/nemysis/hllib/archive/refs/heads/master.zip -OutFile hllib.zip
-
     - name: Download Bullet Physics
       run: Invoke-WebRequest -Uri https://github.com/bulletphysics/bullet3/archive/refs/heads/master.zip -OutFile bullet.zip
 
@@ -35,8 +32,6 @@ jobs:
         Rename-Item -Path external/raylib-5.0 -NewName external/raylib
         Expand-Archive -Path json.zip -DestinationPath external
         Rename-Item -Path external/json-3.11.3 -NewName external/json
-        Expand-Archive -Path hllib.zip -DestinationPath external
-        Rename-Item -Path external/hllib-master -NewName external/hllib
         Expand-Archive -Path bullet.zip -DestinationPath external
         Rename-Item -Path external/bullet3-master -NewName external/bullet3
 
