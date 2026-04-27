@@ -1,4 +1,4 @@
-name: Build Windows
+name: CS3 Final Build
 
 on:
   push:
