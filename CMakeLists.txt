@@ -26,13 +26,20 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# Fetch Bullet Physics
+# Fetch Bullet Physics (stable)
 FetchContent_Declare(
     bullet3
     GIT_REPOSITORY https://github.com/bulletphysics/bullet3.git
     GIT_TAG 3.24
 )
 FetchContent_MakeAvailable(bullet3)
+
+# Build HLLib from sources in external/hllib
+if(EXISTS ${CMAKE_SOURCE_DIR}/external/hllib/CMakeLists.txt)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/external/hllib)
+else()
+    message(FATAL_ERROR "HLLib sources not found in external/hllib. Ensure workflow downloads them correctly.")
+endif()
 
 # Executable
 add_executable(cs3_ai main.cpp src/PhysicsManager.cpp src/ResourceManager.cpp)
@@ -49,6 +56,7 @@ target_link_libraries(cs3_ai
     BulletDynamics
     BulletCollision
     LinearMath
+    HLLib
 )
 
 # Copy resources to build directory

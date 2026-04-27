@@ -11,8 +11,14 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout project
       uses: actions/checkout@v4
+
+    - name: Checkout HLLib
+      uses: actions/checkout@v4
+      with:
+        repository: syndetic-networks/hllib
+        path: external/hllib
 
     - name: Configure CMake
       run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
