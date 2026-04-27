@@ -11,10 +11,10 @@ private:
     Vector3 position;
     float sway, recoil;
     WeaponType weaponType;
-    float fireRate;  // For AK burst
 
 public:
     Weapon(WeaponType type = AK47);
+    void LoadModel(const char* path);
     void Update(bool moving);
     void Draw();
     void Shoot();

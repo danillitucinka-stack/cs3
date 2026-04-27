@@ -7,12 +7,11 @@ void UI::DrawMenu(int w, int h) {
 }
 
 void UI::DrawBuyMenu(int w, int h, int money) {
-    DrawText("Buy Menu", w/2 - 50, h/2 - 100, 30, BLACK);
-    DrawText(TextFormat("Money: $%d", money), w/2 - 50, h/2 - 70, 20, GREEN);
-    DrawText("1. AK-47 $2700", w/2 - 100, h/2 - 30, 20, BLACK);
-    DrawText("2. AWP $4750", w/2 - 100, h/2, 20, BLACK);
-    DrawText("3. Knife $0", w/2 - 100, h/2 + 30, 20, BLACK);
-    DrawText("Press ESC to exit", w/2 - 100, h/2 + 60, 20, GRAY);
+    DrawText("Buy Menu - Money: $", w/2 - 100, h/2 - 50, 20, BLACK);
+    DrawText(TextFormat("%d", money), w/2 + 50, h/2 - 50, 20, GREEN);
+    DrawText("1. AK-47 $2700", w/2 - 100, h/2, 20, BLACK);
+    DrawText("2. AWP $4750", w/2 - 100, h/2 + 30, 20, BLACK);
+    DrawText("3. Knife $0", w/2 - 100, h/2 + 60, 20, BLACK);
 }
 
 void UI::DrawPause(int w, int h) {

@@ -3,8 +3,10 @@
 #include "Player.h"
 #include "MapManager.h"
 #include "Weapon.h"
+#include <nlohmann/json.hpp>
+#include <fstream>
 
-GameEngine::GameEngine(int width, int height) : currentState(MENU), screenWidth(width), screenHeight(height), money(800), health(100), ammo(30) {}
+GameEngine::GameEngine(int width, int height) : currentState(MENU), screenWidth(width), screenHeight(height), money(800) {}
 
 void GameEngine::Initialize() {
     InitWindow(screenWidth, screenHeight, "CS 3 AI");
@@ -15,14 +17,9 @@ void GameEngine::Initialize() {
 void GameEngine::Update() {
     if (currentState == MENU && IsKeyPressed(KEY_ENTER)) currentState = GAMEPLAY;
     if (currentState == GAMEPLAY && IsKeyPressed(KEY_B)) currentState = BUY_MENU;
-    if (currentState == BUY_MENU) {
-        if (IsKeyPressed(KEY_ONE) && money >= 2700) { money -= 2700; /* set weapon to AK */ }
-        if (IsKeyPressed(KEY_TWO) && money >= 4750) { money -= 4750; /* set weapon to AWP */ }
-        if (IsKeyPressed(KEY_THREE)) { /* set weapon to Knife */ }
-        if (IsKeyPressed(KEY_ESCAPE)) currentState = GAMEPLAY;
-    }
+    if (currentState == BUY_MENU && IsKeyPressed(KEY_ESCAPE)) currentState = GAMEPLAY;
     if (IsKeyPressed(KEY_P)) currentState = (currentState == PAUSE) ? GAMEPLAY : PAUSE;
-    // Update other components
+    // Update components
 }
 
 void GameEngine::Draw() {
@@ -32,9 +29,12 @@ void GameEngine::Draw() {
     } else if (currentState == BUY_MENU) {
         UI::DrawBuyMenu(screenWidth, screenHeight, money);
     } else if (currentState == GAMEPLAY) {
-        ClearBackground(DARKBLUE);
         // Draw game world
-        UI::DrawHUD(health, ammo);
+        ClearBackground(DARKBLUE);
+        BeginMode3D(/*camera*/);
+        // Draw map, player, weapon
+        EndMode3D();
+        UI::DrawHUD(100, 30);
         UI::DrawCrosshair(screenWidth, screenHeight);
     } else if (currentState == PAUSE) {
         UI::DrawPause(screenWidth, screenHeight);

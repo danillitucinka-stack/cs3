@@ -1,58 +1,42 @@
 import os
-import random
+import subprocess
+import shutil
 
-def create_expanded_project():
-    # Create directories
-    os.makedirs("src", exist_ok=True)
-    os.makedirs("assets/models", exist_ok=True)
-    os.makedirs("assets/textures", exist_ok=True)
-    os.makedirs("assets/sounds", exist_ok=True)
-    os.makedirs("assets/levels", exist_ok=True)
-    os.makedirs("scripts", exist_ok=True)
+# Шляхи
+EXTERNAL_DIR = "external"
+HLLIB_DIR = os.path.join(EXTERNAL_DIR, "hllib")
+BUILD_DIR = "build"
 
-    # Generate 50 files with content
-    files = {}
+def run_command(command, cwd=None):
+    result = subprocess.run(command, shell=True, cwd=cwd)
+    if result.returncode != 0:
+        print(f"❌ Помилка при виконанні: {command}")
+        exit(1)
 
-    # Levels (10 files)
-    for i in range(1, 11):
-        files[f"assets/levels/level{i}.json"] = f'{{"name": "Level {i}", "enemies": {random.randint(5, 20)}, "map": "dust2"}}'
+print("🚀 Починаємо локальну збірку CS3...")
 
-    # Models (10 files)
-    for i in range(1, 11):
-        files[f"assets/models/model{i}.obj"] = f"# OBJ Model {i}\nv 0 0 0\nv 1 0 0\nf 1 2 3"
+# 1. Створюємо папку для бібліотек
+if not os.path.exists(EXTERNAL_DIR):
+    os.makedirs(EXTERNAL_DIR)
 
-    # Textures (10 files)
-    for i in range(1, 11):
-        files[f"assets/textures/texture{i}.png"] = "Dummy PNG data"
+# 2. Качаємо HLLib (якщо ще немає)
+if not os.path.exists(HLLIB_DIR):
+    print("📦 Завантажуємо HLLib...")
+    run_command(f"git clone https://github.com/syndetic-networks/hllib.git {HLLIB_DIR}")
+else:
+    print("✅ HLLib вже завантажена.")
 
-    # Sounds (10 files)
-    for i in range(1, 11):
-        files[f"assets/sounds/sound{i}.wav"] = "Dummy WAV data"
+# 3. Створюємо папку для збірки
+if os.path.exists(BUILD_DIR):
+    shutil.rmtree(BUILD_DIR)
+os.makedirs(BUILD_DIR)
 
-    # Enemy scripts (5 files)
-    for i in range(1, 6):
-        files[f"scripts/enemy{i}.py"] = f"import random\ndef behavior{i}():\n    return random.choice(['attack', 'patrol'])"
+# 4. Запускаємо CMake (конфігурація)
+print("⚙️ Конфігурація проекту через CMake...")
+run_command(f"cmake -B {BUILD_DIR} -S .", cwd=".")
 
-    # Weapon configs (5 files)
-    for i in range(1, 6):
-        files[f"assets/weapons/weapon{i}.json"] = f'{{"name": "Weapon {i}", "damage": {random.randint(10, 50)}, "rate": {random.uniform(0.1, 1.0)}}'
+# 5. Компіляція
+print("🔨 Компіляція проекту...")
+run_command(f"cmake --build {BUILD_DIR} --config Release", cwd=".")
 
-    # Effects (5 files)
-    for i in range(1, 6):
-        files[f"assets/effects/effect{i}.txt"] = f"Particle effect {i}: speed {random.uniform(1, 5)}, life {random.uniform(0.5, 2.0)}"
-
-    # UI elements (5 files)
-    for i in range(1, 6):
-        files[f"assets/ui/ui{i}.json"] = f'{{"element": "UI {i}", "position": [{random.randint(0, 1280)}, {random.randint(0, 720)}]}}'
-
-    # Create files
-    for file_path, content in files.items():
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        with open(file_path, "w") as f:
-            f.write(content)
-        print(f"Created {file_path}")
-
-    print("Expanded project with 50+ files created!")
-
-if __name__ == "__main__":
-    create_expanded_project()
+print("🎉 Готово! Шукай файл у папку build/Release/")

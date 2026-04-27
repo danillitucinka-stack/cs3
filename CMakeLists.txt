@@ -3,44 +3,44 @@ project(CS3_AI)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include(FetchContent)
-
-# Fetch raylib 5.0
-FetchContent_Declare(
-    raylib
-    URL https://github.com/raysan5/raylib/archive/refs/tags/5.0.tar.gz
-)
-FetchContent_MakeAvailable(raylib)
-
-# Set raylib build options for speed
-set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
-
 # MSVC runtime
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:DLL>")
 
-# Fetch nlohmann/json
-FetchContent_Declare(
-    nlohmann_json
-    URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
-)
-FetchContent_MakeAvailable(nlohmann_json)
+# Build raylib from external
+if(EXISTS ${CMAKE_SOURCE_DIR}/external/raylib/CMakeLists.txt)
+    set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/external/raylib)
+else()
+    message(FATAL_ERROR "raylib sources not found in external/raylib.")
+endif()
 
-# Fetch Bullet Physics (stable)
-FetchContent_Declare(
-    bullet3
-    GIT_REPOSITORY https://github.com/bulletphysics/bullet3.git
-    GIT_TAG 3.24
-)
-FetchContent_MakeAvailable(bullet3)
+# Build nlohmann/json from external
+if(EXISTS ${CMAKE_SOURCE_DIR}/external/json/CMakeLists.txt)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/external/json)
+else()
+    message(FATAL_ERROR "nlohmann/json sources not found in external/json.")
+endif()
 
-# Build HLLib from sources in external/hllib (no FetchContent)
+# Build Bullet Physics from external
+if(EXISTS ${CMAKE_SOURCE_DIR}/external/bullet3/CMakeLists.txt)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/external/bullet3)
+else()
+    message(FATAL_ERROR "Bullet Physics sources not found in external/bullet3.")
+endif()
+
+# Build HLLib from external
+if(EXISTS ${CMAKE_SOURCE_DIR}/external/hllib/CMakeLists.txt)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/external/hllib EXCLUDE_FROM_ALL)
+else()
+    message(FATAL_ERROR "HLLib sources not found in external/hllib.")
+endif()
+
+# Local HLLib from external
 if(EXISTS ${CMAKE_SOURCE_DIR}/external/hllib/CMakeLists.txt)
     add_subdirectory(${CMAKE_SOURCE_DIR}/external/hllib)
-    # Ensure includes are set
-    target_include_directories(HLLib INTERFACE ${CMAKE_SOURCE_DIR}/external/hllib/include)
 else()
-    message(FATAL_ERROR "HLLib sources not found in external/hllib. Ensure workflow downloads them correctly.")
+    message(FATAL_ERROR "HLLib sources not found in external/hllib.")
 endif()
 
 # Executable

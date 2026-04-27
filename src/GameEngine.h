@@ -11,7 +11,6 @@ private:
     GameState currentState;
     int screenWidth, screenHeight;
     int money;
-    int health, ammo;
 
 public:
     GameEngine(int width, int height);
