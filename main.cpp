@@ -6,6 +6,9 @@
 #include <vector>
 #include <cmath>
 #include <filesystem>
+#include "src/AssetLoader.h"
+#include "src/PhysicsManager.h"
+#include "src/MapManager.h"
 
 enum WeaponType { AK47, AWP, DEAGLE };
 
@@ -225,6 +228,8 @@ public:
     }
 };
 
+// Function to detect available assets in resources folder
+// Checks for basic assets and CS 1.6 format files
 std::vector<std::string> DetectAssets() {
     std::vector<std::string> assets;
     std::vector<std::string> dirs = {"models", "sounds"};
@@ -239,6 +244,27 @@ std::vector<std::string> DetectAssets() {
             if (FileExists(path.c_str())) assets.push_back(dir + ": shot" + ext);
         }
     }
+
+    // Auto-detect CS 1.6 resources path and check for .wad, .mdl, .bsp files
+    std::filesystem::path resourcesPath = "resources";
+    if (std::filesystem::exists(resourcesPath) && std::filesystem::is_directory(resourcesPath)) {
+        // Check for .wad files (textures)
+        for (const auto& entry : std::filesystem::recursive_directory_iterator(resourcesPath)) {
+            if (entry.is_regular_file()) {
+                std::string ext = entry.path().extension().string();
+                if (ext == ".wad") {
+                    assets.push_back("CS 1.6 textures: " + entry.path().filename().string());
+                } else if (ext == ".mdl") {
+                    assets.push_back("CS 1.6 models: " + entry.path().filename().string());
+                } else if (ext == ".bsp") {
+                    assets.push_back("CS 1.6 maps: " + entry.path().filename().string());
+                }
+            }
+        }
+    } else {
+        assets.push_back("Resources folder not found");
+    }
+
     return assets;
 }
 

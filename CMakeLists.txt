@@ -26,11 +26,27 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# Executable (only main.cpp)
-add_executable(cs3_ai main.cpp)
+# Fetch Bullet Physics
+FetchContent_Declare(
+    bullet3
+    GIT_REPOSITORY https://github.com/bulletphysics/bullet3.git
+    GIT_TAG 3.24
+)
+FetchContent_MakeAvailable(bullet3)
+
+# Fetch HLLib for asset loading
+FetchContent_Declare(
+    hllib
+    GIT_REPOSITORY https://github.com/nemesisx00/HLLib.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(hllib)
+
+# Executable
+add_executable(cs3_ai main.cpp src/AssetLoader.cpp src/PhysicsManager.cpp)
 
 # Link libraries
-target_link_libraries(cs3_ai raylib nlohmann_json::nlohmann_json)
+target_link_libraries(cs3_ai raylib nlohmann_json::nlohmann_json BulletDynamics BulletCollision LinearMath)
 
 # Copy resources to build directory
 file(COPY resources DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Release)
