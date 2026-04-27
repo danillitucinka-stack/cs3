@@ -34,14 +34,32 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(bullet3)
 
-# Removed HLLib, Assimp, SDL2 to fix FetchContent issues in GitHub Actions
-# Using manual parsers and raylib for audio/rendering
+# Fetch HLLib for asset loading (.wad/.mdl)
+FetchContent_Declare(
+    hllib
+    GIT_REPOSITORY https://github.com/nemesisx00/HLLib.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(hllib)
 
 # Executable
 add_executable(cs3_ai main.cpp src/AssetLoader.cpp src/PhysicsManager.cpp src/ResourceManager.cpp)
 
+# Include directories for fetched libraries
+target_include_directories(cs3_ai PRIVATE
+    ${bullet3_SOURCE_DIR}/src
+    ${hllib_SOURCE_DIR}/HLLib
+)
+
 # Link libraries
-target_link_libraries(cs3_ai raylib nlohmann_json::nlohmann_json BulletDynamics BulletCollision LinearMath)
+target_link_libraries(cs3_ai
+    raylib
+    nlohmann_json::nlohmann_json
+    BulletDynamics
+    BulletCollision
+    LinearMath
+    HLLib
+)
 
 # Copy resources to build directory
 file(COPY resources DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Release)
