@@ -26,31 +26,31 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# Fetch Bullet Physics with stable config
+# Fetch Bullet Physics (stable method)
 FetchContent_Declare(
     bullet3
     GIT_REPOSITORY https://github.com/bulletphysics/bullet3.git
     GIT_TAG 3.24
-    CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF -DUSE_MSVC_RUNTIME_LIBRARY_DLL=OFF
 )
 FetchContent_MakeAvailable(bullet3)
 
-# Fetch HLLib for asset loading (.wad/.mdl) with fixed config
-FetchContent_Declare(
-    hllib
-    GIT_REPOSITORY https://github.com/nemesisx00/HLLib.git
-    GIT_TAG master
-    CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF -DUSE_MSVC_RUNTIME_LIBRARY_DLL=OFF
-)
-FetchContent_MakeAvailable(hllib)
+# HLLib imported from external folder (downloaded in workflow)
+if(EXISTS ${CMAKE_SOURCE_DIR}/external/hllib/HLLib.lib)
+    add_library(HLLib STATIC IMPORTED)
+    set_target_properties(HLLib PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/external/hllib/HLLib.lib
+        INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/external/hllib
+    )
+else()
+    message(FATAL_ERROR "HLLib not found in external/hllib. Ensure workflow downloads it correctly.")
+endif()
 
 # Executable
 add_executable(cs3_ai main.cpp src/AssetLoader.cpp src/PhysicsManager.cpp src/ResourceManager.cpp)
 
-# Include directories for fetched libraries with SYSTEM flag for MSVC
+# Include directories
 target_include_directories(cs3_ai SYSTEM PRIVATE
     ${bullet3_SOURCE_DIR}/src
-    ${hllib_SOURCE_DIR}/HLLib
 )
 
 # Link libraries
@@ -66,12 +66,18 @@ target_link_libraries(cs3_ai
 # Copy resources to build directory
 file(COPY resources DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Release)
 
-# Copy raylib.dll if needed
+# Copy raylib.dll and HLLib.dll if needed
 if(WIN32)
     add_custom_command(TARGET cs3_ai POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:raylib> $<TARGET_FILE_DIR:cs3_ai>
     )
+    if(EXISTS ${CMAKE_SOURCE_DIR}/external/hllib/HLLib.dll)
+        add_custom_command(TARGET cs3_ai POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_SOURCE_DIR}/external/hllib/HLLib.dll $<TARGET_FILE_DIR:cs3_ai>
+        )
+    endif()
 endif()
 
 install(DIRECTORY resources DESTINATION .)
