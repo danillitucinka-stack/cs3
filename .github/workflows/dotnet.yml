@@ -1,0 +1,38 @@
+name: Build .NET
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Copy resources
+      run: |
+        if (Test-Path resources) {
+          Copy-Item -Path resources -Destination bin/Release/net8.0-windows/ -Recurse
+        }
+
+    - name: Upload Build
+      uses: actions/upload-artifact@v4
+      with:
+        name: CS3-Game-Build
+        path: bin/Release/net8.0-windows/
